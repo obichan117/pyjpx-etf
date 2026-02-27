@@ -1,0 +1,46 @@
+site_name: pyjpx-etf
+site_url: https://obichan117.github.io/pyjpx-etf
+site_description: A clean, beginner-friendly Python library for fetching JPX ETF portfolio composition data.
+repo_url: https://github.com/obichan117/pyjpx-etf
+repo_name: obichan117/pyjpx-etf
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: false
+            show_root_heading: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Guide:
+      - ETF Data: guide/etf.md
+  - API Reference:
+      - ETF: api/etf.md
+      - Config: api/config.md
+      - Exceptions: api/exceptions.md
