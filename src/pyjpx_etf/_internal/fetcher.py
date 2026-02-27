@@ -52,9 +52,21 @@ def fetch_pcf(code: str) -> str:
 
     # Only raise ETFNotFoundError if *all* errors are 404s
     if all(isinstance(e, ETFNotFoundError) for e in errors):
-        raise ETFNotFoundError(f"ETF {code} not found on any provider")
+        raise ETFNotFoundError(
+            f"ETF {code}: PCF data not found. "
+            "The code may be invalid, the ETF may not be covered by "
+            "available providers (ICE, Solactive), or the code may "
+            "belong to an ETN (which has no PCF data)."
+        )
 
-    # Raise the first non-404 error (server errors, network errors, non-CSV)
+    # Non-CSV responses from all providers → likely outside data hours
+    if all(isinstance(e, FetchError) and "Non-CSV" in str(e) for e in errors):
+        raise FetchError(
+            f"ETF {code}: no PCF data available right now. "
+            "PCF data is published ~07:50–23:55 JST on business days only."
+        )
+
+    # Raise the first non-404 error (server errors, network errors)
     for e in errors:
         if not isinstance(e, ETFNotFoundError):
             raise e

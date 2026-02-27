@@ -87,7 +87,7 @@ class TestFetchPCF:
             _mock_response(404),
         ]
 
-        with pytest.raises(ETFNotFoundError, match="not found on any provider"):
+        with pytest.raises(ETFNotFoundError, match="PCF data not found"):
             fetch_pcf("0000")
 
     def test_network_error_raises_fetch_error(self, mock_get, mock_config):
@@ -142,7 +142,7 @@ class TestFetchPCF:
             _mock_response(200, HTML_RESPONSE),
         ]
 
-        with pytest.raises(FetchError, match="Non-CSV response"):
+        with pytest.raises(FetchError, match="no PCF data available right now"):
             fetch_pcf("1306")
 
     def test_request_delay_applied(self, mock_get, mock_config):
