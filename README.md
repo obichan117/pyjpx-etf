@@ -65,22 +65,6 @@ $ etf topix -a         # all holdings (not just top 10)
 $ etf 1306 -a --en     # combine options
 ```
 
-## Supported ETF Examples
-
-| Code | Name | Provider |
-|------|------|----------|
-| 1306 | TOPIX連動型上場投資信託 | ICE |
-| 1311 | TOPIX Core30連動型上場投資信託 | ICE |
-| 1321 | 日経225連動型上場投資信託 | ICE |
-| 1489 | 日経平均高配当株50指数連動型ETF | ICE |
-| 1577 | 野村日本株高配当70連動型ETF | ICE |
-| 1698 | 上場インデックスファンド日本高配当 | ICE |
-| 2080 | PBR1倍割れ解消推進ETF | ICE |
-| 2243 | Global X US Tech Top 20 ETF | Solactive |
-| 2644 | Global X 半導体関連-日本株式 ETF | Solactive |
-| 200A | 日経半導体株 ETF | ICE |
-| 316A | iShares 日経半導体株 ETF | ICE |
-
 ## Language Setting
 
 Names default to Japanese. Switch to English via config or CLI flag:
