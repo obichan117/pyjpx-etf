@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import warnings
+from dataclasses import replace
+
 import pandas as pd
 
 from ._internal.fetcher import fetch_pcf
+from ._internal.master import get_japanese_names
 from ._internal.parser import parse_pcf
+from .config import config
 from .models import ETFInfo, Holding
 
 
@@ -19,7 +24,7 @@ class ETF:
         import pyjpx_etf as etf
 
         e = etf.ETF("1306")
-        e.info.name          # "TOPIX ETF"
+        e.info.name          # "TOPIX連動型上場投資信託"
         e.holdings[:5]       # first 5 holdings
         e.to_dataframe()     # pandas DataFrame
     """
@@ -31,7 +36,39 @@ class ETF:
 
     def _load(self) -> None:
         csv_text = fetch_pcf(self._code)
-        self._info, self._holdings = parse_pcf(csv_text)
+        info, holdings = parse_pcf(csv_text)
+
+        if config.lang == "ja":
+            names = get_japanese_names()
+            if names:
+                # Collect all non-empty codes that need translation
+                all_codes = {info.code} | {h.code for h in holdings}
+                all_codes.discard("")
+                missing = all_codes - names.keys()
+
+                # Refresh once if any codes are missing
+                if missing:
+                    names = get_japanese_names(refresh=True)
+                    missing = all_codes - names.keys()
+
+                # Warn about codes still missing after refresh
+                if missing:
+                    warnings.warn(
+                        f"Japanese names not found for: {sorted(missing)}",
+                        stacklevel=2,
+                    )
+
+                ja_name = names.get(info.code)
+                if ja_name:
+                    info = replace(info, name=ja_name)
+
+                holdings = [
+                    replace(h, name=names[h.code]) if h.code in names else h
+                    for h in holdings
+                ]
+
+        self._info = info
+        self._holdings = holdings
 
     @property
     def info(self) -> ETFInfo:

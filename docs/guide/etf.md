@@ -12,11 +12,11 @@ e = etf.ETF("1306")
 
 ### ETF Info
 
-Access metadata via the `info` property:
+Access metadata via the `info` property. Names are Japanese by default:
 
 ```python
 e.info.code               # "1306"
-e.info.name               # "TOPIX ETF"
+e.info.name               # "TOPIX連動型上場投資信託"
 e.info.cash_component     # Fund cash component
 e.info.shares_outstanding # Shares outstanding
 e.info.date               # Fund date as datetime.date
@@ -30,8 +30,11 @@ dict_info = e.info.to_dict()
 Access constituent holdings:
 
 ```python
-for h in e.holdings:
+for h in e.holdings[:3]:
     print(f"{h.code} {h.name}: {h.weight:.2%}")
+# 7203 トヨタ自動車: 3.80%
+# 8306 三菱UFJフィナンシャル・グループ: 2.50%
+# 6758 ソニーグループ: 2.30%
 ```
 
 Each `Holding` has: `code`, `name`, `isin`, `exchange`, `currency`, `shares`, `price`, `weight`.
@@ -41,6 +44,23 @@ Each `Holding` has: `code`, `name`, `isin`, `exchange`, `currency`, `shares`, `p
 ```python
 df = e.to_dataframe()
 # Columns: code, name, isin, exchange, currency, shares, price, weight
+```
+
+### Language
+
+Set `config.lang` before creating an `ETF` instance:
+
+```python
+import pyjpx_etf as etf
+
+# Japanese (default)
+e = etf.ETF("1306")
+e.info.name  # "TOPIX連動型上場投資信託"
+
+# English
+etf.config.lang = "en"
+e = etf.ETF("1306")
+e.info.name  # "TOPIX ETF"
 ```
 
 ## Error Handling
