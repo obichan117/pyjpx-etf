@@ -18,13 +18,24 @@ _CACHE_FILE = Path.home() / ".cache" / "pyjpx-etf" / "master.json"
 _memory_cache: dict[str, str] | None = None
 
 
-def _fetch_master() -> dict[str, str]:
-    """Fetch the JPX master XLS and return ``{code: japanese_name}``."""
+def _reset_cache() -> None:
+    """Reset in-memory cache. Intended for testing."""
+    global _memory_cache  # noqa: PLW0603
+    _memory_cache = None
+
+
+def _fetch_master_xls() -> bytes:
+    """Fetch the JPX master XLS and return raw bytes."""
     resp = requests.get(_JPX_MASTER_URL, timeout=config.timeout)
     resp.raise_for_status()
+    return resp.content
 
+
+def _parse_master_xls(content: bytes) -> dict[str, str]:
+    """Parse JPX master XLS bytes into ``{code: japanese_name}``."""
+    # xlrd is required for .xls format (see pyproject.toml)
     df = pd.read_excel(
-        io.BytesIO(resp.content),
+        io.BytesIO(content),
         header=None,
         dtype=str,
     )
@@ -80,7 +91,7 @@ def get_japanese_names(*, refresh: bool = False) -> dict[str, str]:
             return _memory_cache
 
     try:
-        names = _fetch_master()
+        names = _parse_master_xls(_fetch_master_xls())
         _memory_cache = names
         _save_disk_cache(names)
         return _memory_cache

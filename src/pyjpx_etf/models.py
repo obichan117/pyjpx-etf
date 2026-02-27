@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 from dataclasses import asdict, dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -16,7 +17,7 @@ class ETFInfo:
     shares_outstanding: int
     date: datetime.date
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -33,5 +34,5 @@ class Holding:
     price: float
     weight: float
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)

@@ -13,6 +13,24 @@ _JPX_MASTER_URL = (
     "tvdivq0000001vg2-att/data_j.xls"
 )
 
+_JPX_FEE_URL = "https://www.jpx.co.jp/equities/products/etfs/issues/01.html"
+
+_ALIASES: dict[str, str] = {
+    "topix": "1306",
+    "225": "1321",
+    "core30": "1311",
+    "div50": "1489",
+    "div70": "1577",
+    "div100": "1698",
+    "pbr": "2080",
+    "fang": "2243",
+    "sox": "2644",
+    "jpsox1": "200A",
+    "jpsox2": "316A",
+}
+
+_VALID_LANGS = ("ja", "en")
+
 
 @dataclass
 class Config:
@@ -23,7 +41,17 @@ class Config:
     provider_urls: list[str] = field(
         default_factory=lambda: [_ICE_URL, _SOLACTIVE_URL]
     )
-    lang: str = "ja"
+    _lang: str = field(default="ja", repr=False)
+
+    @property
+    def lang(self) -> str:
+        return self._lang
+
+    @lang.setter
+    def lang(self, value: str) -> None:
+        if value not in _VALID_LANGS:
+            raise ValueError(f"lang must be one of {_VALID_LANGS}, got {value!r}")
+        self._lang = value
 
 
 config = Config()

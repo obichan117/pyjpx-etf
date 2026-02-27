@@ -121,6 +121,58 @@ class TestETFJapaneseNameFallback:
         assert e.holdings[0].name == "NISSUI CORPORATION"
 
 
+@patch("pyjpx_etf.etf.fetch_pcf", return_value=MOCK_CSV)
+@patch("pyjpx_etf.etf.get_japanese_names", return_value={})
+class TestETFNav:
+    def setup_method(self):
+        config.lang = "en"
+
+    def test_nav_returns_int(self, mock_master, mock_fetch):
+        e = ETF("1306")
+        assert isinstance(e.nav, int)
+
+    def test_nav_equals_cash_plus_market_value(self, mock_master, mock_fetch):
+        e = ETF("1306")
+        cash = 496_973_797_639.0
+        mv1 = 7_647_000.0 * 1506.5  # NISSUI
+        mv2 = 3_000_000.0 * 2500.0  # TOYOTA
+        expected = round(cash + mv1 + mv2)
+        assert e.nav == expected
+
+    def test_nav_triggers_load(self, mock_master, mock_fetch):
+        e = ETF("1306")
+        mock_fetch.assert_not_called()
+        _ = e.nav
+        mock_fetch.assert_called_once()
+
+
+@patch("pyjpx_etf.etf.get_fees", return_value={"1306": 0.06})
+@patch("pyjpx_etf.etf.fetch_pcf", return_value=MOCK_CSV)
+@patch("pyjpx_etf.etf.get_japanese_names", return_value={})
+class TestETFFee:
+    def setup_method(self):
+        config.lang = "en"
+
+    def test_fee_returns_float(self, mock_master, mock_fetch, mock_fees):
+        e = ETF("1306")
+        assert e.fee == 0.06
+
+    def test_fee_returns_none_when_missing(self, mock_master, mock_fetch, mock_fees):
+        e = ETF("9999")
+        assert e.fee is None
+
+    def test_fee_cached_after_first_access(self, mock_master, mock_fetch, mock_fees):
+        e = ETF("1306")
+        _ = e.fee
+        _ = e.fee
+        mock_fees.assert_called_once()
+
+    def test_fee_independent_of_load(self, mock_master, mock_fetch, mock_fees):
+        e = ETF("1306")
+        _ = e.fee
+        mock_fetch.assert_not_called()
+
+
 PARTIAL_NAMES = {"1306": "TOPIX連動型上場投資信託"}
 FULL_NAMES = {
     "1306": "TOPIX連動型上場投資信託",

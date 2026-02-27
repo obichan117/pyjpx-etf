@@ -15,49 +15,73 @@ import pyjpx_etf as etf
 
 e = etf.ETF("1306")
 print(e.info.name)       # "TOPIX連動型上場投資信託"
+print(e.nav)             # total fund NAV in yen
+print(e.fee)             # trust fee (%) e.g. 0.06
 print(e.holdings[:3])
 # [Holding(code='7203', name='トヨタ自動車', ...),
 #  Holding(code='8306', name='三菱UFJフィナンシャル・グループ', ...),
 #  Holding(code='6758', name='ソニーグループ', ...)]
 ```
 
-### CLI
+## CLI
 
 ```
 $ etf 1306
 
-1306 — ＮＥＸＴ　ＦＵＮＤＳ　ＴＯＰＩＸ連動型上場投信 (2026-02-27)
+1306 — TOPIX連動型上場投資信託 (2026-02-27)
+Nav: 5170億  信託報酬: 0.06%
 
  Code   Name                                Weight
 ─────  ──────────────────────────────────  ──────
  7203   トヨタ自動車                          3.7%
  8306   三菱ＵＦＪフィナンシャル・グループ    3.3%
  6501   日立製作所                            2.4%
- 8316   三井住友フィナンシャルグループ        2.3%
- 6758   ソニーグループ                        2.1%
- 8058   三菱商事                              2.0%
- 8411   みずほフィナンシャルグループ          1.8%
- 8035   東京エレクトロン                      1.7%
- 7011   三菱重工業                            1.7%
- 6857   アドバンテスト                        1.6%
-```
-
-English names with `--en`:
-
-```
-$ etf 1306 --en
-
-1306 — TOPIX ETF (2026-02-27)
-
- Code   Name                Weight
-─────  ──────────────────  ──────
- 7203   TOYOTA MOTOR CORP     3.7%
- 8306   MITSUBISHI UFJ FIN    3.3%
- 6501   HITACHI               2.4%
  ...
 ```
 
-### Language Setting
+### Aliases
+
+Use shorthand aliases instead of codes:
+
+| Alias | Code | ETF |
+|-------|------|-----|
+| `etf topix` | 1306 | TOPIX連動型上場投資信託 |
+| `etf 225` | 1321 | 日経225連動型上場投資信託 |
+| `etf core30` | 1311 | TOPIX Core30連動型上場投資信託 |
+| `etf div50` | 1489 | 日経平均高配当株50指数連動型ETF |
+| `etf div70` | 1577 | 野村日本株高配当70連動型ETF |
+| `etf div100` | 1698 | 上場インデックスファンド日本高配当 |
+| `etf pbr` | 2080 | PBR1倍割れ解消推進ETF |
+| `etf fang` | 2243 | Global X US Tech Top 20 ETF |
+| `etf sox` | 2644 | Global X 半導体関連-日本株式 ETF |
+| `etf jpsox1` | 200A | 日経半導体株 ETF |
+| `etf jpsox2` | 316A | iShares 日経半導体株 ETF |
+
+### Options
+
+```
+$ etf sox --en         # English names
+$ etf topix -a         # all holdings (not just top 10)
+$ etf 1306 -a --en     # combine options
+```
+
+## Supported ETF Examples
+
+| Code | Name | Provider |
+|------|------|----------|
+| 1306 | TOPIX連動型上場投資信託 | ICE |
+| 1311 | TOPIX Core30連動型上場投資信託 | ICE |
+| 1321 | 日経225連動型上場投資信託 | ICE |
+| 1489 | 日経平均高配当株50指数連動型ETF | ICE |
+| 1577 | 野村日本株高配当70連動型ETF | ICE |
+| 1698 | 上場インデックスファンド日本高配当 | ICE |
+| 2080 | PBR1倍割れ解消推進ETF | ICE |
+| 2243 | Global X US Tech Top 20 ETF | Solactive |
+| 2644 | Global X 半導体関連-日本株式 ETF | Solactive |
+| 200A | 日経半導体株 ETF | ICE |
+| 316A | iShares 日経半導体株 ETF | ICE |
+
+## Language Setting
 
 Names default to Japanese. Switch to English via config or CLI flag:
 

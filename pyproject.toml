@@ -21,7 +21,8 @@ classifiers = [
 dependencies = [
     "requests>=2.32",
     "pandas>=2.0",
-    "xlrd>=2.0",
+    "xlrd>=2.0",  # required by pd.read_excel for JPX master .xls files
+    "lxml>=5.0",  # required by pd.read_html for JPX ETF fee page
 ]
 
 [project.urls]

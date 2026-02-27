@@ -39,6 +39,24 @@ for h in e.holdings[:3]:
 
 Each `Holding` has: `code`, `name`, `isin`, `exchange`, `currency`, `shares`, `price`, `weight`.
 
+### NAV
+
+Total fund net asset value (cash + holdings market value) in yen:
+
+```python
+e.nav  # 515997003139 (in yen)
+```
+
+### Fee (信託報酬)
+
+Trust fee (信託報酬) from the JPX ETF list page. Independent of PCF data:
+
+```python
+e.fee  # 0.06 (means 0.06%)
+```
+
+Returns `None` if the fee is unavailable for the given ETF code.
+
 ### DataFrame Output
 
 ```python

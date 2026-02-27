@@ -7,11 +7,53 @@ from dataclasses import replace
 
 import pandas as pd
 
+from ._internal.fees import get_fees
 from ._internal.fetcher import fetch_pcf
 from ._internal.master import get_japanese_names
 from ._internal.parser import parse_pcf
 from .config import config
 from .models import ETFInfo, Holding
+
+
+def _resolve_japanese_names(
+    info: ETFInfo, holdings: list[Holding]
+) -> tuple[ETFInfo, list[Holding]]:
+    """Replace English names with Japanese names from the JPX master list.
+
+    Fetches the master list, refreshes once if any codes are missing,
+    and warns about codes still missing after refresh.
+    """
+    names = get_japanese_names()
+    if not names:
+        return info, holdings
+
+    all_codes = {info.code} | {h.code for h in holdings}
+    all_codes.discard("")
+    missing = all_codes - names.keys()
+
+    if missing:
+        names = get_japanese_names(refresh=True)
+        missing = all_codes - names.keys()
+
+    if missing:
+        warnings.warn(
+            f"Japanese names not found for: {sorted(missing)}",
+            stacklevel=3,
+        )
+
+    ja_name = names.get(info.code)
+    if ja_name:
+        info = replace(info, name=ja_name)
+
+    holdings = [
+        replace(h, name=names[h.code]) if h.code in names else h
+        for h in holdings
+    ]
+
+    return info, holdings
+
+
+_UNSET = object()  # sentinel: "not loaded yet" vs "loaded but None"
 
 
 class ETF:
@@ -33,39 +75,14 @@ class ETF:
         self._code = str(code)
         self._info: ETFInfo | None = None
         self._holdings: list[Holding] | None = None
+        self._fee: float | None | object = _UNSET
 
     def _load(self) -> None:
         csv_text = fetch_pcf(self._code)
         info, holdings = parse_pcf(csv_text)
 
         if config.lang == "ja":
-            names = get_japanese_names()
-            if names:
-                # Collect all non-empty codes that need translation
-                all_codes = {info.code} | {h.code for h in holdings}
-                all_codes.discard("")
-                missing = all_codes - names.keys()
-
-                # Refresh once if any codes are missing
-                if missing:
-                    names = get_japanese_names(refresh=True)
-                    missing = all_codes - names.keys()
-
-                # Warn about codes still missing after refresh
-                if missing:
-                    warnings.warn(
-                        f"Japanese names not found for: {sorted(missing)}",
-                        stacklevel=2,
-                    )
-
-                ja_name = names.get(info.code)
-                if ja_name:
-                    info = replace(info, name=ja_name)
-
-                holdings = [
-                    replace(h, name=names[h.code]) if h.code in names else h
-                    for h in holdings
-                ]
+            info, holdings = _resolve_japanese_names(info, holdings)
 
         self._info = info
         self._holdings = holdings
@@ -81,6 +98,28 @@ class ETF:
         if self._holdings is None:
             self._load()
         return self._holdings  # type: ignore[return-value]
+
+    @property
+    def fee(self) -> float | None:
+        """Trust fee (信託報酬) as a percentage value, e.g. ``0.06`` for 0.06%.
+
+        Fetched independently from the JPX ETF list page (does not trigger PCF load).
+        Returns ``None`` if the fee is unavailable.
+        """
+        if self._fee is _UNSET:
+            fees = get_fees()
+            self._fee = fees.get(self._code)
+        return self._fee  # type: ignore[return-value]
+
+    @property
+    def nav(self) -> int:
+        """Total fund net asset value in yen.
+
+        Computed as cash_component + sum(shares * price) for all holdings.
+        Triggers PCF data load on first access.
+        """
+        total_mv = sum(h.shares * h.price for h in self.holdings)
+        return round(self.info.cash_component + total_mv)
 
     def to_dataframe(self) -> pd.DataFrame:
         """Return holdings as a pandas DataFrame."""

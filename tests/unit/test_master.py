@@ -23,7 +23,7 @@ def _mock_get_ok():
 
 def _reset(tmp_path, monkeypatch):
     """Reset memory cache and redirect disk cache to tmp_path."""
-    master._memory_cache = None
+    master._reset_cache()
     monkeypatch.setattr(master, "_CACHE_FILE", tmp_path / "master.json")
 
 
@@ -117,7 +117,7 @@ class TestDiskCache:
         self, mock_get, mock_read, tmp_path, monkeypatch
     ):
         _reset(tmp_path, monkeypatch)
-        # Seed memory cache
+        # Seed memory cache (direct access needed to test refresh bypass)
         master._memory_cache = {"1306": "old_memory"}
         # Seed fresh disk cache
         cache_file = tmp_path / "master.json"

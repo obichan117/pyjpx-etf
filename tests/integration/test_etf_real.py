@@ -61,3 +61,15 @@ class TestCommonBehavior:
     def test_not_found(self):
         with pytest.raises(PyJPXETFError):
             ETF("0000").info
+
+    def test_fee_returns_float(self):
+        e = ETF("1306")
+        fee = e.fee
+        assert isinstance(fee, float)
+        assert 0 < fee < 10  # sanity: fee is a reasonable percentage
+
+    def test_nav_returns_positive_int(self):
+        e = ETF("1306")
+        nav = e.nav
+        assert isinstance(nav, int)
+        assert nav > 0
