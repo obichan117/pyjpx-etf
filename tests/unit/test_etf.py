@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pandas as pd
+import pytest
 
 from pyjpx_etf import ETF
 
@@ -55,3 +56,20 @@ class TestETFClass:
         e = ETF(1306)
         _ = e.info
         mock_fetch.assert_called_once_with("1306")
+
+    def test_top(self, mock_fetch):
+        e = ETF("1306")
+        df = e.top(1)
+        assert len(df) == 1
+        assert list(df.columns) == ["code", "name", "weight"]
+        assert df.iloc[0]["code"] == "1332"  # higher market value
+
+    def test_top_default(self, mock_fetch):
+        e = ETF("1306")
+        df = e.top()
+        assert len(df) == 2  # only 2 holdings, top 10 returns all
+
+    def test_top_weight_is_percentage(self, mock_fetch):
+        e = ETF("1306")
+        df = e.top()
+        assert df["weight"].sum() == pytest.approx(100.0)

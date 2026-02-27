@@ -49,5 +49,14 @@ class ETF:
         """Return holdings as a pandas DataFrame."""
         return pd.DataFrame([h.to_dict() for h in self.holdings])
 
+    def top(self, n: int = 10) -> pd.DataFrame:
+        """Return top N holdings by weight with code, name, and weight (%)."""
+        df = self.to_dataframe()
+        return (
+            df.nlargest(n, "weight")[["code", "name", "weight"]]
+            .assign(weight=lambda d: d["weight"] * 100)
+            .reset_index(drop=True)
+        )
+
     def __repr__(self) -> str:
         return f"ETF('{self._code}')"
