@@ -1,5 +1,10 @@
 # pyjpx-etf
 
+[![PyPI](https://img.shields.io/pypi/v/pyjpx-etf)](https://pypi.org/project/pyjpx-etf/)
+[![Python](https://img.shields.io/pypi/pyversions/pyjpx-etf)](https://pypi.org/project/pyjpx-etf/)
+[![License](https://img.shields.io/pypi/l/pyjpx-etf)](https://github.com/obichan117/pyjpx-etf/blob/main/LICENSE)
+[![Docs](https://img.shields.io/badge/docs-mkdocs-blue)](https://obichan117.github.io/pyjpx-etf)
+
 A clean, beginner-friendly Python library for fetching JPX ETF portfolio composition (PCF) data.
 
 ## Installation
