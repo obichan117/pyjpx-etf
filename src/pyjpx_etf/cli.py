@@ -71,7 +71,7 @@ def main() -> None:
     )
     parser.add_argument(
         "code",
-        help="ETF code or alias (e.g. 1306, topix, 225, sox, fang, jpsox1, jpsox2)",
+        help="ETF code or alias (e.g. 1306, topix, 225, sox, jpsox1, jpsox2)",
     )
     parser.add_argument(
         "--en", action="store_true", help="show English names (default: Japanese)"

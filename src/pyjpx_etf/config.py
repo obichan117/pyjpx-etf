@@ -21,12 +21,10 @@ _ALIASES: dict[str, str] = {
     "core30": "1311",
     "div50": "1489",
     "div70": "1577",
-    "div100": "1698",
     "pbr": "2080",
-    "fang": "2243",
-    "sox": "2644",
+    "sox": "2243",
     "jpsox1": "200A",
-    "jpsox2": "316A",
+    "jpsox2": "2644",
 }
 
 _VALID_LANGS = ("ja", "en")

@@ -50,12 +50,10 @@ Use shorthand aliases instead of codes:
 | `etf core30` | 1311 | TOPIX Core30連動型上場投資信託 |
 | `etf div50` | 1489 | 日経平均高配当株50指数連動型ETF |
 | `etf div70` | 1577 | 野村日本株高配当70連動型ETF |
-| `etf div100` | 1698 | 上場インデックスファンド日本高配当 |
 | `etf pbr` | 2080 | PBR1倍割れ解消推進ETF |
-| `etf fang` | 2243 | Global X US Tech Top 20 ETF |
-| `etf sox` | 2644 | Global X 半導体関連-日本株式 ETF |
+| `etf sox` | 2243 | Global X 半導体 ETF |
 | `etf jpsox1` | 200A | 日経半導体株 ETF |
-| `etf jpsox2` | 316A | iShares 日経半導体株 ETF |
+| `etf jpsox2` | 2644 | Global X 半導体関連-日本株式 ETF |
 
 ### Options
 

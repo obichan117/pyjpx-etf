@@ -2,6 +2,19 @@ import pandas as pd
 import pytest
 
 from pyjpx_etf import ETF, PyJPXETFError
+from pyjpx_etf.config import _ALIASES
+
+
+@pytest.mark.integration
+class TestAliases:
+    """Every alias must resolve and load successfully."""
+
+    @pytest.mark.parametrize("alias,code", sorted(_ALIASES.items()))
+    def test_alias(self, alias, code):
+        e = ETF(code)
+        assert e.info.code == code
+        assert e.info.name != ""
+        assert len(e.holdings) > 0
 
 
 @pytest.mark.integration

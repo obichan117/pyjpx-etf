@@ -34,7 +34,7 @@ src/pyjpx_etf/
 ├── models.py          # ETFInfo, Holding frozen dataclasses
 ├── config.py          # Provider URLs, timeout, delay, lang (mutable singleton, lang validated)
 ├── exceptions.py      # PyJPXETFError → ETFNotFoundError, FetchError, ParseError
-├── cli.py             # CLI entry point: `etf <code|alias> [--en] [-a]`, aliases (topix, 225, sox, fang, jpsox1, jpsox2)
+├── cli.py             # CLI entry point: `etf <code|alias> [--en] [-a]`, aliases (topix, 225, core30, div50, div70, pbr, sox, jpsox1, jpsox2)
 └── _internal/
     ├── fetcher.py     # I/O only: HTTP GET → raw CSV text (provider fallback)
     ├── parser.py      # Pure parse: CSV text → models (no I/O)
@@ -72,9 +72,8 @@ src/pyjpx_etf/
 | 2564 | Global X MSCI SuperDividend Japan ETF | Solactive |
 | 2627 | Global X E-Commerce Japan ETF | Solactive |
 | 2644 | Global X Japan Semiconductor ETF | Solactive |
-| 2243 | Global X US Tech Top 20 ETF | Solactive |
+| 2564 | Global X MSCI SuperDividend Japan ETF | Solactive |
 | 200A | 日経半導体株 ETF | ICE |
-| 316A | iShares 日経半導体株 ETF | ICE |
 
 ## API
 

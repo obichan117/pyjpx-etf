@@ -50,16 +50,13 @@ class TestResolveCode:
         assert _resolve_code("225") == "1321"
 
     def test_alias_sox(self):
-        assert _resolve_code("sox") == "2644"
+        assert _resolve_code("sox") == "2243"
 
-    def test_alias_fang(self):
-        assert _resolve_code("fang") == "2243"
+    def test_alias_jpsox2(self):
+        assert _resolve_code("jpsox2") == "2644"
 
     def test_alias_jpsox1(self):
         assert _resolve_code("jpsox1") == "200A"
-
-    def test_alias_jpsox2(self):
-        assert _resolve_code("jpsox2") == "316A"
 
     def test_alias_pbr(self):
         assert _resolve_code("pbr") == "2080"
@@ -69,9 +66,6 @@ class TestResolveCode:
 
     def test_alias_div70(self):
         assert _resolve_code("div70") == "1577"
-
-    def test_alias_div100(self):
-        assert _resolve_code("div100") == "1698"
 
     def test_alias_core30(self):
         assert _resolve_code("core30") == "1311"

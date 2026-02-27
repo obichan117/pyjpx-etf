@@ -45,8 +45,8 @@ class TestAliases:
 
     def test_all_aliases_present(self):
         expected = {
-            "topix", "225", "core30", "div50", "div70", "div100",
-            "pbr", "fang", "sox", "jpsox1", "jpsox2",
+            "topix", "225", "core30", "div50", "div70",
+            "pbr", "sox", "jpsox1", "jpsox2",
         }
         assert expected == set(_ALIASES.keys())
 

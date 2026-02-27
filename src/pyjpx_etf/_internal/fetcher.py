@@ -59,11 +59,13 @@ def fetch_pcf(code: str) -> str:
             "belong to an ETN (which has no PCF data)."
         )
 
-    # Non-CSV responses from all providers → likely outside data hours
-    if all(isinstance(e, FetchError) and "Non-CSV" in str(e) for e in errors):
+    # Any non-CSV response present → likely outside data hours or unsupported code
+    has_non_csv = any("Non-CSV" in str(e) for e in errors)
+    if has_non_csv:
         raise FetchError(
             f"ETF {code}: no PCF data available right now. "
-            "PCF data is published ~07:50–23:55 JST on business days only."
+            "PCF data is published ~07:50–23:55 JST on business days only. "
+            "If this persists, the code may not be covered by available providers."
         )
 
     # Raise the first non-404 error (server errors, network errors)
