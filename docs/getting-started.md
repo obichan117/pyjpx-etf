@@ -56,13 +56,48 @@ etf.config.request_delay = 0.5  # Delay between provider retries
 etf.config.lang = "en"          # "ja" (default) or "en"
 ```
 
+## ETF Ranking
+
+Rank all TSE ETFs by return over various periods:
+
+```python
+import pyjpx_etf as etf
+
+# Top 10 by 1-month return (default)
+df = etf.ranking()
+
+# Top 20 by 1-year return
+df = etf.ranking("1y", n=20)
+
+# Worst 5 by ytd return
+df = etf.ranking("ytd", n=-5)
+
+# All ETFs sorted by return
+df = etf.ranking("1m", n=0)
+```
+
+Returns a DataFrame with columns: `code`, `name`, `return`, `fee`, `dividend_yield`.
+
+Available periods: `1m`, `3m`, `6m`, `1y`, `3y`, `5y`, `10y`, `ytd`.
+
+### CLI
+
+```
+$ etf rank                # top 10 by 1-month return
+$ etf rank 20 1y          # top 20 by 1-year return
+$ etf rank -5 ytd --en    # worst 5 by ytd, English names
+```
+
 ## Data Sources
 
-pyjpx-etf fetches PCF (Portfolio Composition File) CSVs from:
+pyjpx-etf fetches data from multiple providers:
 
-| Provider | Covers |
+| Provider | Data |
 |---|---|
-| ICE Data Services | Majority of TSE ETFs |
-| Solactive AG | Global X Japan ETFs |
+| ICE Data Services | PCF (portfolio composition) for most TSE ETFs |
+| Solactive AG | PCF for Global X Japan ETFs |
+| JPX | Trust fees (信託報酬), Japanese security names |
+| Rakuten Securities | Period returns, dividend yields, supplementary fees |
 
-Data is updated daily on business days, available 7:50–23:55 JST.
+PCF data is updated daily on business days, available 7:50–23:55 JST.
+Ranking data (Rakuten) is available anytime.

@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/pypi/l/pyjpx-etf)](https://github.com/obichan117/pyjpx-etf/blob/main/LICENSE)
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue)](https://obichan117.github.io/pyjpx-etf)
 
-A clean, beginner-friendly Python library for fetching JPX ETF portfolio composition (PCF) data.
+A clean, beginner-friendly Python library for fetching JPX ETF portfolio composition (PCF) data and ranking ETFs by returns.
 
 ## Installation
 
@@ -26,6 +26,11 @@ print(e.holdings[:3])
 # [Holding(code='7203', name='トヨタ自動車', ...),
 #  Holding(code='8306', name='三菱UFJフィナンシャル・グループ', ...),
 #  Holding(code='6758', name='ソニーグループ', ...)]
+
+# Rank ETFs by returns
+etf.ranking()              # top 10 by 1-month return
+etf.ranking("1y", n=20)    # top 20 by 1-year return
+etf.ranking("ytd", n=-5)   # worst 5 by ytd return
 ```
 
 ## CLI
@@ -43,6 +48,18 @@ Nav: 5170億  信託報酬: 0.06%
  6501   日立製作所                            2.4%
  ...
 ```
+
+### ETF Ranking
+
+Rank all TSE ETFs by period returns:
+
+```
+$ etf rank                # top 10 by 1-month return
+$ etf rank 20 1y          # top 20 by 1-year return
+$ etf rank -5 ytd --en    # worst 5 by ytd, English names
+```
+
+Available periods: `1m` (default), `3m`, `6m`, `1y`, `3y`, `5y`, `10y`, `ytd`
 
 ### Aliases
 
@@ -66,6 +83,8 @@ Use shorthand aliases instead of codes:
 $ etf sox --en         # English names
 $ etf topix -a         # all holdings (not just top 10)
 $ etf 1306 -a --en     # combine options
+$ etf --help           # show all commands
+$ etf --version        # show version
 ```
 
 ## Language Setting

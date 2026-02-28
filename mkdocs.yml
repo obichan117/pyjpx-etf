@@ -40,7 +40,9 @@ nav:
   - Getting Started: getting-started.md
   - Guide:
       - ETF Data: guide/etf.md
+      - ETF Ranking: guide/ranking.md
   - API Reference:
       - ETF: api/etf.md
+      - ranking: api/ranking.md
       - Config: api/config.md
       - Exceptions: api/exceptions.md
