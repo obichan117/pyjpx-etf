@@ -182,9 +182,42 @@ def _main_etf(argv: list[str]) -> None:
     _print_holdings(e, show_all=show_all)
 
 
+def _print_help() -> None:
+    from . import __version__
+
+    print(f"""\
+pyjpx-etf {__version__}
+
+Usage:
+  etf <code|alias> [--en] [-a]    Show ETF portfolio composition
+  etf rank [n] [period] [--en]    Rank ETFs by return
+  etf --version                   Show version
+  etf --help                      Show this help
+
+Aliases:
+  topix, 225, core30, div50, div70, pbr, sox, jpsox1, jpsox2
+
+Periods:
+  1m (default), 3m, 6m, 1y, 3y, 5y, 10y, ytd
+
+Examples:
+  etf 1306                Top 10 holdings of TOPIX ETF
+  etf topix --en -a       All holdings in English
+  etf rank                Top 10 by 1-month return
+  etf rank -5 1y          Worst 5 by 1-year return""")
+
+
 def main() -> None:
     argv = sys.argv[1:]
-    if argv and argv[0] == "rank":
+    if not argv or (argv[0] in ("-h", "--help")):
+        _print_help()
+        return
+    if argv[0] in ("-V", "--version"):
+        from . import __version__
+
+        print(f"pyjpx-etf {__version__}")
+        return
+    if argv[0] == "rank":
         _main_rank(argv[1:])
     else:
         _main_etf(argv)

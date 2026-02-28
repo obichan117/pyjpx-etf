@@ -1,6 +1,6 @@
 """A clean, beginner-friendly Python library for fetching JPX ETF portfolio composition data."""
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 from .config import config
 from .etf import ETF
