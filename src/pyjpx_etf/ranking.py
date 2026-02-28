@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
+from ._internal.fees import get_fees
 from ._internal.rakuten import PERIOD_COLUMNS, get_rakuten_data
 from .config import config
 
@@ -35,6 +36,7 @@ def ranking(period: str = "1m", n: int = 10) -> pd.DataFrame:
     if not data:
         return pd.DataFrame(columns=["code", "name", "return", "fee", "dividend_yield"])
 
+    jpx_fees = get_fees()
     name_key = "name_ja" if config.lang == "ja" else "name_en"
 
     rows = []
@@ -42,12 +44,15 @@ def ranking(period: str = "1m", n: int = 10) -> pd.DataFrame:
         ret = entry.get(period)
         if ret is None:
             continue
+        fee = entry.get("fee")
+        if fee is None:
+            fee = jpx_fees.get(code)
         rows.append(
             {
                 "code": code,
                 "name": entry.get(name_key, ""),
                 "return": ret,
-                "fee": entry.get("fee"),
+                "fee": fee,
                 "dividend_yield": entry.get("dividend_yield"),
             }
         )
