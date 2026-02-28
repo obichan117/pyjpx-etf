@@ -146,6 +146,7 @@ class TestETFNav:
         mock_fetch.assert_called_once()
 
 
+@patch("pyjpx_etf.etf.get_rakuten_data", return_value={})
 @patch("pyjpx_etf.etf.get_fees", return_value={"1306": 0.06})
 @patch("pyjpx_etf.etf.fetch_pcf", return_value=MOCK_CSV)
 @patch("pyjpx_etf.etf.get_japanese_names", return_value={})
@@ -153,24 +154,49 @@ class TestETFFee:
     def setup_method(self):
         config.lang = "en"
 
-    def test_fee_returns_float(self, mock_master, mock_fetch, mock_fees):
+    def test_fee_returns_float(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
         e = ETF("1306")
         assert e.fee == 0.06
 
-    def test_fee_returns_none_when_missing(self, mock_master, mock_fetch, mock_fees):
+    def test_fee_returns_none_when_missing(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
         e = ETF("9999")
         assert e.fee is None
 
-    def test_fee_cached_after_first_access(self, mock_master, mock_fetch, mock_fees):
+    def test_fee_cached_after_first_access(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
         e = ETF("1306")
         _ = e.fee
         _ = e.fee
         mock_fees.assert_called_once()
 
-    def test_fee_independent_of_load(self, mock_master, mock_fetch, mock_fees):
+    def test_fee_independent_of_load(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
         e = ETF("1306")
         _ = e.fee
         mock_fetch.assert_not_called()
+
+
+@patch(
+    "pyjpx_etf.etf.get_rakuten_data",
+    return_value={"9999": {"fee": 0.33}},
+)
+@patch("pyjpx_etf.etf.get_fees", return_value={"1306": 0.06})
+@patch("pyjpx_etf.etf.fetch_pcf", return_value=MOCK_CSV)
+@patch("pyjpx_etf.etf.get_japanese_names", return_value={})
+class TestETFFeeFallback:
+    def setup_method(self):
+        config.lang = "en"
+
+    def test_jpx_fee_used_when_available(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+        e = ETF("1306")
+        assert e.fee == 0.06
+        mock_rakuten.assert_not_called()
+
+    def test_rakuten_fee_used_when_jpx_missing(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+        e = ETF("9999")
+        assert e.fee == 0.33
+
+    def test_none_when_both_missing(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+        e = ETF("8888")
+        assert e.fee is None
 
 
 PARTIAL_NAMES = {"1306": "TOPIX連動型上場投資信託"}

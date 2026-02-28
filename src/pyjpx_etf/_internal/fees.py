@@ -29,6 +29,7 @@ def _fetch_fee_html() -> str:
     """Fetch the JPX ETF fee page and return raw HTML."""
     resp = requests.get(_JPX_FEE_URL, timeout=config.timeout)
     resp.raise_for_status()
+    resp.encoding = resp.apparent_encoding
     return resp.text
 
 
@@ -54,13 +55,14 @@ def _parse_fee_html(html: str) -> dict[str, float]:
     fees: dict[str, float] = {}
     for df in tables:
         # Find tables that have both コード and 信託報酬 columns
+        # Normalize whitespace to handle "信託 報酬" vs "信託報酬"
         code_col = None
         fee_col = None
         for col in df.columns:
-            col_str = str(col)
-            if "コード" in col_str:
+            col_norm = "".join(str(col).split())
+            if code_col is None and col_norm == "コード":
                 code_col = col
-            if "信託報酬" in col_str:
+            if "信託報酬" in col_norm:
                 fee_col = col
         if code_col is None or fee_col is None:
             continue
@@ -69,7 +71,10 @@ def _parse_fee_html(html: str) -> dict[str, float]:
             # pandas may coerce 4-digit codes to int — normalize
             if code.endswith(".0"):
                 code = code[:-2]
-            if not code or code == "nan" or not code.isdigit():
+            if not code or code == "nan":
+                continue
+            # Accept numeric codes (e.g. "1306") and alphanumeric (e.g. "200A")
+            if not code.isalnum():
                 continue
             fee = _parse_fee_string(str(row[fee_col]))
             if fee is not None:

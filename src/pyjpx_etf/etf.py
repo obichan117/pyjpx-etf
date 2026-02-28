@@ -10,6 +10,7 @@ import pandas as pd
 from ._internal.fees import get_fees
 from ._internal.fetcher import fetch_pcf
 from ._internal.master import get_japanese_names
+from ._internal.rakuten import get_rakuten_data
 from ._internal.parser import parse_pcf
 from .config import config
 from .models import ETFInfo, Holding
@@ -108,7 +109,13 @@ class ETF:
         """
         if self._fee is _UNSET:
             fees = get_fees()
-            self._fee = fees.get(self._code)
+            fee = fees.get(self._code)
+            if fee is None:
+                rakuten = get_rakuten_data()
+                entry = rakuten.get(self._code)
+                if entry is not None:
+                    fee = entry.get("fee")
+            self._fee = fee
         return self._fee  # type: ignore[return-value]
 
     @property

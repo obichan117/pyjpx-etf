@@ -1,14 +1,17 @@
-"""CLI entry point: etf <code>"""
+"""CLI entry point: etf <code> | etf rank [n] [period]"""
 
 from __future__ import annotations
 
-import argparse
 import sys
 import unicodedata
 
+import pandas as pd
+
+from ._internal.rakuten import PERIOD_COLUMNS
 from .config import _ALIASES, config
 from .etf import ETF
 from .exceptions import PyJPXETFError
+from .ranking import ranking
 
 
 def _display_width(s: str) -> int:
@@ -64,27 +67,99 @@ def _print_holdings(e: ETF, *, show_all: bool) -> None:
     print()
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        prog="etf",
-        description="Show JPX ETF portfolio composition data.",
-    )
-    parser.add_argument(
-        "code",
-        help="ETF code or alias (e.g. 1306, topix, 225, sox, jpsox1, jpsox2)",
-    )
-    parser.add_argument(
-        "--en", action="store_true", help="show English names (default: Japanese)"
-    )
-    parser.add_argument(
-        "-a", "--all", action="store_true", help="show all holdings (default: top 10)"
-    )
-    args = parser.parse_args()
+def _print_ranking(df: pd.DataFrame, period: str) -> None:
+    """Format and print the ranking table."""
+    if df.empty:
+        print("No data available.")
+        return
 
-    if args.en:
+    period_label = f"Return ({period})"
+    name_width = max(_display_width(str(n)) for n in df["name"])
+    name_width = max(name_width, 4)  # at least "Name"
+
+    header = (
+        f" {'Code':<5}  {_pad('Name', name_width)}"
+        f"  {period_label:>12}  {'Fee':>5}  {'Yield':>6}"
+    )
+    sep = (
+        f"{'─' * 5}  {'─' * name_width}"
+        f"  {'─' * 12}  {'─' * 5}  {'─' * 6}"
+    )
+
+    print()
+    print(header)
+    print(sep)
+    for _, row in df.iterrows():
+        fee_str = f"{row['fee']:.2f}" if pd.notna(row["fee"]) else "  -"
+        yld_str = f"{row['dividend_yield']:.2f}%" if pd.notna(row["dividend_yield"]) else "   -"
+        print(
+            f" {row['code']:<5}  {_pad(str(row['name']), name_width)}"
+            f"  {row['return']:>11.2f}%  {fee_str:>5}  {yld_str:>6}"
+        )
+    print()
+
+
+def _main_rank(argv: list[str]) -> None:
+    """Handle ``etf rank [n] [period] [--en]``."""
+    n = 10
+    period = "1m"
+    en = False
+
+    positional: list[str] = []
+    for arg in argv:
+        if arg == "--en":
+            en = True
+        else:
+            positional.append(arg)
+
+    valid_periods = set(PERIOD_COLUMNS.keys())
+
+    for arg in positional:
+        if arg in valid_periods:
+            period = arg
+        else:
+            try:
+                n = int(arg)
+            except ValueError:
+                print(f"Error: invalid argument {arg!r}", file=sys.stderr)
+                sys.exit(1)
+
+    if en:
         config.lang = "en"
 
-    code = _resolve_code(args.code)
+    try:
+        df = ranking(period=period, n=n)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    _print_ranking(df, period)
+
+
+def _main_etf(argv: list[str]) -> None:
+    """Handle ``etf <code> [--en] [-a]``."""
+    code = None
+    en = False
+    show_all = False
+
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--en":
+            en = True
+        elif argv[i] in ("-a", "--all"):
+            show_all = True
+        elif code is None:
+            code = argv[i]
+        i += 1
+
+    if code is None:
+        print("Usage: etf <code|alias> [--en] [-a]", file=sys.stderr)
+        sys.exit(1)
+
+    if en:
+        config.lang = "en"
+
+    code = _resolve_code(code)
 
     try:
         e = ETF(code)
@@ -104,4 +179,12 @@ def main() -> None:
     print("  ".join(meta_parts))
     print()
 
-    _print_holdings(e, show_all=args.all)
+    _print_holdings(e, show_all=show_all)
+
+
+def main() -> None:
+    argv = sys.argv[1:]
+    if argv and argv[0] == "rank":
+        _main_rank(argv[1:])
+    else:
+        _main_etf(argv)

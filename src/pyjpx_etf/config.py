@@ -15,6 +15,10 @@ _JPX_MASTER_URL = (
 
 _JPX_FEE_URL = "https://www.jpx.co.jp/equities/products/etfs/issues/01.html"
 
+_RAKUTEN_URL = (
+    "https://www.rakuten-sec.co.jp/web/market/search/etf_search/ETFD.csv"
+)
+
 _ALIASES: dict[str, str] = {
     "topix": "1306",
     "225": "1321",

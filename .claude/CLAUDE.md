@@ -29,24 +29,27 @@ uv run mkdocs build --strict
 
 ```
 src/pyjpx_etf/
-├── __init__.py        # Public API: ETF class, config, exceptions, models
+├── __init__.py        # Public API: ETF class, config, ranking, exceptions, models
 ├── etf.py             # ETF class (main entry, lazy-loaded) + _resolve_japanese_names()
+├── ranking.py         # ranking() function — ETF returns ranking via Rakuten data
 ├── models.py          # ETFInfo, Holding frozen dataclasses
 ├── config.py          # Provider URLs, timeout, delay, lang (mutable singleton, lang validated)
 ├── exceptions.py      # PyJPXETFError → ETFNotFoundError, FetchError, ParseError
-├── cli.py             # CLI entry point: `etf <code|alias> [--en] [-a]`, aliases (topix, 225, core30, div50, div70, pbr, sox, jpsox1, jpsox2)
+├── cli.py             # CLI: `etf <code|alias> [--en] [-a]` + `etf rank [n] [period] [--en]`
 └── _internal/
     ├── fetcher.py     # I/O only: HTTP GET → raw CSV text (provider fallback)
     ├── parser.py      # Pure parse: CSV text → models (no I/O)
-    ├── master.py      # JPX master list: fetch XLS (_fetch_master_xls) + parse (_parse_master_xls), 2-tier cache
-    └── fees.py        # JPX ETF fees (信託報酬): fetch HTML (_fetch_fee_html) + parse (_parse_fee_html), 2-tier cache
+    ├── master.py      # JPX master list: fetch XLS + parse, 2-tier cache (7-day TTL)
+    ├── fees.py        # JPX ETF fees (信託報酬): fetch HTML + parse, 2-tier cache (7-day TTL)
+    └── rakuten.py     # Rakuten Securities CSV: fee + returns + yield, 2-tier cache (1-day TTL)
 ```
 
 ### Key Design Patterns
 
-- **Fetch/Parse split**: `_internal/fetcher.py` does HTTP only, `_internal/parser.py` does CSV parsing only. `_internal/master.py` and `_internal/fees.py` also follow this split.
+- **Fetch/Parse split**: `_internal/fetcher.py` does HTTP only, `_internal/parser.py` does CSV parsing only. `_internal/master.py`, `_internal/fees.py`, and `_internal/rakuten.py` also follow this split.
 - **Lazy loading**: ETF data fetched on first `.info` or `.holdings` access
 - **Provider fallback**: Try ICE first, then Solactive. CSV content validated (rejects HTML 200s)
+- **Fee fallback**: JPX fee page is authoritative; Rakuten CSV used only when JPX returns None
 - **Error precedence**: ETFNotFoundError only if *all* providers return 404; any server/network error → FetchError
 - **Name resolution**: Extracted to `_resolve_japanese_names()` in `etf.py` — keeps `_load()` focused on fetch+parse
 - **Config validation**: `config.lang` only accepts `"ja"` or `"en"`, raises `ValueError` otherwise
@@ -57,6 +60,7 @@ src/pyjpx_etf/
 |---|---|---|
 | ICE Data Services | `https://inav.ice.com/pcf-download/{code}.csv` | Majority of TSE ETFs |
 | Solactive AG | `https://www.solactive.com/downloads/etfservices/tse-pcf/single/{code}.csv` | Global X Japan ETFs |
+| Rakuten Securities | `https://www.rakuten-sec.co.jp/web/market/search/etf_search/ETFD.csv` | Fees, returns, yields for all TSE ETFs |
 
 - Available 7:50–23:55 JST on business days
 - ICE returns HTML (not 404) outside hours and for unknown codes — fetcher handles this
@@ -85,9 +89,14 @@ e.info                     # ETFInfo dataclass
 e.info.name                # "TOPIX ETF"
 e.info.to_dict()           # dict of all fields
 e.nav                      # total fund NAV in yen (int)
-e.fee                      # 0.06 (trust fee %, or None)
+e.fee                      # 0.06 (trust fee %, JPX primary → Rakuten fallback)
 e.holdings                 # list[Holding]
 e.to_dataframe()           # pd.DataFrame with weights
+
+# ETF ranking by period returns
+etf.ranking()              # top 10 by 1m return
+etf.ranking("1y", n=20)    # top 20 by 1y return
+etf.ranking("ytd", n=-5)   # worst 5 by ytd return
 
 etf.config.timeout = 60
 etf.config.request_delay = 0.5
