@@ -13,10 +13,10 @@
         <link rel="canonical" href="https://obichan117.github.io/pyjpx-etf/api/etf/">
       
       
-        <link rel="prev" href="../../guide/etf/">
+        <link rel="prev" href="../../guide/ranking/">
       
       
-        <link rel="next" href="../config/">
+        <link rel="next" href="../ranking/">
       
       
         
@@ -384,6 +384,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/ranking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ETF Ranking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -519,10 +547,43 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#pyjpx_etf.ETF.fee" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fee
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyjpx_etf.ETF.nav" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        nav
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pyjpx_etf.ETF.to_dataframe" class="md-nav__link">
     <span class="md-ellipsis">
       
         to_dataframe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyjpx_etf.ETF.top" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        top
       
     </span>
   </a>
@@ -538,6 +599,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ranking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ranking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -645,10 +734,43 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#pyjpx_etf.ETF.fee" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fee
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyjpx_etf.ETF.nav" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        nav
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pyjpx_etf.ETF.to_dataframe" class="md-nav__link">
     <span class="md-ellipsis">
       
         to_dataframe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyjpx_etf.ETF.top" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        top
       
     </span>
   </a>
@@ -704,7 +826,7 @@
 <div class="highlight"><pre><span></span><code>import pyjpx_etf as etf
 
 e = etf.ETF(&quot;1306&quot;)
-e.info.name          # &quot;TOPIX ETF&quot;
+e.info.name          # &quot;TOPIX連動型上場投資信託&quot;
 e.holdings[:5]       # first 5 holdings
 e.to_dataframe()     # pandas DataFrame
 </code></pre></div>
@@ -727,6 +849,54 @@ e.to_dataframe()     # pandas DataFrame
 
 
 
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="pyjpx_etf.ETF.fee" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">fee</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Trust fee (信託報酬) as a percentage value, e.g. <code>0.06</code> for 0.06%.</p>
+<p>Fetched independently from the JPX ETF list page (does not trigger PCF load).
+Returns <code>None</code> if the fee is unavailable.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="pyjpx_etf.ETF.nav" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">nav</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Total fund net asset value in yen.</p>
+<p>Computed as cash_component + sum(shares * price) for all holdings.
+Triggers PCF data load on first access.</p>
+
+    </div>
+
+</div>
+
 
 
 
@@ -742,6 +912,24 @@ e.to_dataframe()     # pandas DataFrame
     <div class="doc doc-contents ">
 
         <p>Return holdings as a pandas DataFrame.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="pyjpx_etf.ETF.top" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">top</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Return top N holdings by weight with code, name, and weight (%).</p>
 
 
     </div>

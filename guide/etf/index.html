@@ -16,7 +16,7 @@
         <link rel="prev" href="../../getting-started/">
       
       
-        <link rel="next" href="../../api/etf/">
+        <link rel="next" href="../ranking/">
       
       
         
@@ -459,10 +459,43 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#nav" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NAV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fee" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fee (信託報酬)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#dataframe-output" class="md-nav__link">
     <span class="md-ellipsis">
       
         DataFrame Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#language" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Language
       
     </span>
   </a>
@@ -489,6 +522,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ranking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ETF Ranking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -563,6 +624,34 @@
     
   
     ETF
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/ranking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ranking
   
 
     
@@ -700,10 +789,43 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#nav" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NAV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fee" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fee (信託報酬)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#dataframe-output" class="md-nav__link">
     <span class="md-ellipsis">
       
         DataFrame Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#language" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Language
       
     </span>
   </a>
@@ -754,9 +876,9 @@
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">e</span> <span class="o">=</span> <span class="n">etf</span><span class="o">.</span><span class="n">ETF</span><span class="p">(</span><span class="s2">&quot;1306&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="etf-info">ETF Info</h3>
-<p>Access metadata via the <code>info</code> property:</p>
+<p>Access metadata via the <code>info</code> property. Names are Japanese by default:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">e</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">code</span>               <span class="c1"># &quot;1306&quot;</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">e</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">name</span>               <span class="c1"># &quot;TOPIX ETF&quot;</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">e</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">name</span>               <span class="c1"># &quot;TOPIX連動型上場投資信託&quot;</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">e</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">cash_component</span>     <span class="c1"># Fund cash component</span>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">e</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">shares_outstanding</span> <span class="c1"># Shares outstanding</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">e</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">date</span>               <span class="c1"># Fund date as datetime.date</span>
@@ -766,24 +888,49 @@
 </code></pre></div>
 <h3 id="holdings">Holdings</h3>
 <p>Access constituent holdings:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">holdings</span><span class="p">:</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">holdings</span><span class="p">[:</span><span class="mi">3</span><span class="p">]:</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">code</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">weight</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># 7203 トヨタ自動車: 3.80%</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># 8306 三菱UFJフィナンシャル・グループ: 2.50%</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># 6758 ソニーグループ: 2.30%</span>
 </code></pre></div>
 <p>Each <code>Holding</code> has: <code>code</code>, <code>name</code>, <code>isin</code>, <code>exchange</code>, <code>currency</code>, <code>shares</code>, <code>price</code>, <code>weight</code>.</p>
+<h3 id="nav">NAV</h3>
+<p>Total fund net asset value (cash + holdings market value) in yen:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">e</span><span class="o">.</span><span class="n">nav</span>  <span class="c1"># 515997003139 (in yen)</span>
+</code></pre></div>
+<h3 id="fee">Fee (信託報酬)</h3>
+<p>Trust fee (信託報酬), sourced from JPX with Rakuten Securities as fallback. Independent of PCF data:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">e</span><span class="o">.</span><span class="n">fee</span>  <span class="c1"># 0.06 (means 0.06%)</span>
+</code></pre></div>
+<p>Returns <code>None</code> if the fee is unavailable from both sources.</p>
 <h3 id="dataframe-output">DataFrame Output</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">df</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># Columns: code, name, isin, exchange, currency, shares, price, weight</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">df</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># Columns: code, name, isin, exchange, currency, shares, price, weight</span>
+</code></pre></div>
+<h3 id="language">Language</h3>
+<p>Set <code>config.lang</code> before creating an <code>ETF</code> instance:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pyjpx_etf</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">etf</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Japanese (default)</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">e</span> <span class="o">=</span> <span class="n">etf</span><span class="o">.</span><span class="n">ETF</span><span class="p">(</span><span class="s2">&quot;1306&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">e</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">name</span>  <span class="c1"># &quot;TOPIX連動型上場投資信託&quot;</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="c1"># English</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="n">etf</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">lang</span> <span class="o">=</span> <span class="s2">&quot;en&quot;</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="n">e</span> <span class="o">=</span> <span class="n">etf</span><span class="o">.</span><span class="n">ETF</span><span class="p">(</span><span class="s2">&quot;1306&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="n">e</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">name</span>  <span class="c1"># &quot;TOPIX ETF&quot;</span>
 </code></pre></div>
 <h2 id="error-handling">Error Handling</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pyjpx_etf</span><span class="w"> </span><span class="kn">import</span> <span class="n">ETFNotFoundError</span><span class="p">,</span> <span class="n">FetchError</span><span class="p">,</span> <span class="n">ParseError</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">e</span> <span class="o">=</span> <span class="n">etf</span><span class="o">.</span><span class="n">ETF</span><span class="p">(</span><span class="s2">&quot;9999&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">_</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">info</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="k">except</span> <span class="n">ETFNotFoundError</span><span class="p">:</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ETF not found&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">except</span> <span class="n">FetchError</span><span class="p">:</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Network error&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pyjpx_etf</span><span class="w"> </span><span class="kn">import</span> <span class="n">ETFNotFoundError</span><span class="p">,</span> <span class="n">FetchError</span><span class="p">,</span> <span class="n">ParseError</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">e</span> <span class="o">=</span> <span class="n">etf</span><span class="o">.</span><span class="n">ETF</span><span class="p">(</span><span class="s2">&quot;9999&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">_</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">info</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="k">except</span> <span class="n">ETFNotFoundError</span><span class="p">:</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ETF not found&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">except</span> <span class="n">FetchError</span><span class="p">:</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Network error&quot;</span><span class="p">)</span>
 </code></pre></div>
 
 
