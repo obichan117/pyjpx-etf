@@ -10,6 +10,35 @@ from ..exceptions import ParseError
 from ..models import ETFInfo, Holding
 
 
+def _split_sections(text: str) -> tuple[str, str]:
+    """Split CSV into info and holdings sections.
+
+    Primary: split on blank line.
+    Fallback: scan for the holdings header row (Code,Name,ISIN,...).
+    """
+    normalized = text.replace("\r\n", "\n").strip()
+
+    # Primary: blank-line separator
+    parts = normalized.split("\n\n")
+    if len(parts) >= 2:
+        return parts[0], parts[1]
+
+    # Fallback: find the holdings header by column pattern
+    lines = normalized.split("\n")
+    for i, line in enumerate(lines):
+        lower = line.lower()
+        if "code" in lower and "name" in lower and (
+            "isin" in lower or "shares" in lower
+        ):
+            # Check this isn't the info header (row 0)
+            if i >= 2:
+                info_text = "\n".join(lines[:i])
+                holdings_text = "\n".join(lines[i:])
+                return info_text, holdings_text
+
+    raise ParseError("Expected two sections separated by a blank line")
+
+
 def parse_pcf(csv_text: str) -> tuple[ETFInfo, list[Holding]]:
     """Parse PCF CSV text into ETFInfo and a list of Holdings.
 
@@ -17,12 +46,9 @@ def parse_pcf(csv_text: str) -> tuple[ETFInfo, list[Holding]]:
       Section 1 (header + 1 row): ETF metadata
       Section 2 (header + N rows): constituent holdings
     """
-    sections = csv_text.replace("\r\n", "\n").strip().split("\n\n")
-    if len(sections) < 2:
-        raise ParseError("Expected two sections separated by a blank line")
-
-    info = _parse_info_section(sections[0])
-    holdings = _parse_holdings_section(sections[1])
+    info_text, holdings_text = _split_sections(csv_text)
+    info = _parse_info_section(info_text)
+    holdings = _parse_holdings_section(holdings_text)
     return info, holdings
 
 

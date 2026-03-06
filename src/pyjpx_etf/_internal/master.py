@@ -3,25 +3,13 @@
 from __future__ import annotations
 
 import io
-import json
-import time
 from pathlib import Path
 
 import pandas as pd
 import requests
 
 from ..config import _JPX_MASTER_URL, config
-
-_CACHE_TTL = 7 * 24 * 3600  # 1 week in seconds
-_CACHE_FILE = Path.home() / ".cache" / "pyjpx-etf" / "master.json"
-
-_memory_cache: dict[str, str] | None = None
-
-
-def _reset_cache() -> None:
-    """Reset in-memory cache. Intended for testing."""
-    global _memory_cache  # noqa: PLW0603
-    _memory_cache = None
+from ._cache import TieredCache
 
 
 def _fetch_master_xls() -> bytes:
@@ -49,27 +37,18 @@ def _parse_master_xls(content: bytes) -> dict[str, str]:
     return lookup
 
 
-def _load_disk_cache() -> dict[str, str] | None:
-    """Read disk cache if it exists and is fresh. Return None otherwise."""
-    try:
-        data = json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
-        if time.time() - data["timestamp"] < _CACHE_TTL:
-            return data["names"]
-    except Exception:
-        pass
-    return None
+def _fetch_and_parse() -> dict[str, str]:
+    return _parse_master_xls(_fetch_master_xls())
 
 
-def _save_disk_cache(names: dict[str, str]) -> None:
-    """Write names to disk cache. Fail silently on any error."""
-    try:
-        _CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"timestamp": time.time(), "names": names}
-        _CACHE_FILE.write_text(
-            json.dumps(payload, ensure_ascii=False), encoding="utf-8"
-        )
-    except Exception:
-        pass
+_cache = TieredCache(
+    disk_path=Path.home() / ".cache" / "pyjpx-etf" / "master.json",
+    ttl=7 * 24 * 3600,
+    key="names",
+    fetcher=_fetch_and_parse,
+)
+
+_reset_cache = _cache.reset
 
 
 def get_japanese_names(*, refresh: bool = False) -> dict[str, str]:
@@ -79,23 +58,4 @@ def get_japanese_names(*, refresh: bool = False) -> dict[str, str]:
     Pass ``refresh=True`` to skip both caches and fetch fresh data.
     Returns an empty dict if the fetch or parse fails (graceful degradation).
     """
-    global _memory_cache  # noqa: PLW0603
-
-    if not refresh and _memory_cache is not None:
-        return _memory_cache
-
-    if not refresh:
-        disk = _load_disk_cache()
-        if disk is not None:
-            _memory_cache = disk
-            return _memory_cache
-
-    try:
-        names = _parse_master_xls(_fetch_master_xls())
-        _memory_cache = names
-        _save_disk_cache(names)
-        return _memory_cache
-    except Exception:
-        if _memory_cache is None:
-            _memory_cache = {}
-        return _memory_cache
+    return _cache.get(refresh=refresh)
