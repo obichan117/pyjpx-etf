@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 
 _ICE_URL = "https://inav.ice.com/pcf-download/{code}.csv"
 _SOLACTIVE_URL = (
     "https://www.solactive.com/downloads/etfservices/tse-pcf/single/{code}.csv"
+)
+_SP_GLOBAL_URL = (
+    "https://api.ebs.ihsmarkit.com/inav/getfile?filename={code}.csv"
 )
 _JPX_MASTER_URL = (
     "https://www.jpx.co.jp/markets/statistics-equities/misc/"
@@ -17,6 +21,10 @@ _JPX_FEE_URL = "https://www.jpx.co.jp/equities/products/etfs/issues/01.html"
 
 _RAKUTEN_URL = (
     "https://www.rakuten-sec.co.jp/web/market/search/etf_search/ETFD.csv"
+)
+
+_DB_RELEASE_URL = (
+    "https://github.com/obichan117/pyjpx-etf/releases/download/db-latest/pcf.db"
 )
 
 _ALIASES: dict[str, str] = {
@@ -41,8 +49,9 @@ class Config:
     timeout: int = 30
     request_delay: float = 0.0
     provider_urls: list[str] = field(
-        default_factory=lambda: [_ICE_URL, _SOLACTIVE_URL]
+        default_factory=lambda: [_ICE_URL, _SOLACTIVE_URL, _SP_GLOBAL_URL]
     )
+    db_path: Path | None = field(default=None, repr=False)
     _lang: str = field(default="ja", repr=False)
 
     @property

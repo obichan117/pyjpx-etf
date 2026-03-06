@@ -1,21 +1,34 @@
-"""A clean, beginner-friendly Python library for fetching JPX ETF portfolio composition data."""
+"""Python library for fetching JPX ETF portfolio composition data."""
 
-__version__ = "0.3.3"
+__version__ = "0.4.0"
 
 from .config import config
 from .etf import ETF
-from .exceptions import ETFNotFoundError, FetchError, ParseError, PyJPXETFError
+from .exceptions import (
+    DatabaseError,
+    ETFNotFoundError,
+    FetchError,
+    ParseError,
+    PyJPXETFError,
+)
+from .history import history
 from .models import ETFInfo, Holding
 from .ranking import ranking
+from .search import search
+from .sync import sync
 
 __all__ = [
     "ETF",
     "config",
     "ranking",
+    "search",
+    "history",
+    "sync",
     "ETFInfo",
     "Holding",
     "ETFNotFoundError",
     "FetchError",
     "ParseError",
+    "DatabaseError",
     "PyJPXETFError",
 ]

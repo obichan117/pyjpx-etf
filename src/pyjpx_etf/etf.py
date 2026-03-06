@@ -7,11 +7,12 @@ from dataclasses import replace
 
 import pandas as pd
 
+from ._internal import db
 from ._internal.fees import get_fees
 from ._internal.fetcher import fetch_pcf
 from ._internal.master import get_japanese_names
-from ._internal.rakuten import get_rakuten_data
 from ._internal.parser import parse_pcf
+from ._internal.rakuten import get_rakuten_data
 from .config import config
 from .models import ETFInfo, Holding
 
@@ -55,6 +56,22 @@ def _resolve_japanese_names(
 
 
 _UNSET = object()  # sentinel: "not loaded yet" vs "loaded but None"
+_db_checked = False  # has auto-sync been attempted this session?
+
+
+def _ensure_db() -> None:
+    """Auto-sync the DB if missing or stale (> 1 day). Runs once per session."""
+    global _db_checked  # noqa: PLW0603
+    if _db_checked:
+        return
+    _db_checked = True
+
+    from .sync import sync
+
+    try:
+        sync()
+    except Exception:
+        pass  # graceful — fall through to live fetch
 
 
 class ETF:
@@ -72,13 +89,30 @@ class ETF:
         e.to_dataframe()     # pandas DataFrame
     """
 
-    def __init__(self, code: str) -> None:
+    def __init__(self, code: str, *, live: bool = False) -> None:
         self._code = str(code)
+        self._live = live
         self._info: ETFInfo | None = None
         self._holdings: list[Holding] | None = None
         self._fee: float | None | object = _UNSET
 
     def _load(self) -> None:
+        # Auto-sync DB (once per day, silent when fresh)
+        if not self._live:
+            _ensure_db()
+
+        # DB-first: read from local DB when available, live fallback
+        if not self._live and db.db_exists():
+            info = db.read_etf_info(self._code)
+            holdings = db.read_holdings(self._code)
+            if info is not None and holdings is not None:
+                if config.lang == "ja":
+                    info, holdings = _resolve_japanese_names(info, holdings)
+                self._info = info
+                self._holdings = holdings
+                return
+
+        # Live fetch (when DB unavailable or live=True)
         csv_text = fetch_pcf(self._code)
         info, holdings = parse_pcf(csv_text)
 
@@ -108,8 +142,13 @@ class ETF:
         Returns ``None`` if the fee is unavailable.
         """
         if self._fee is _UNSET:
-            fees = get_fees()
-            fee = fees.get(self._code)
+            fee = None
+            # DB first (unless live mode)
+            if not self._live and db.db_exists():
+                fee = db.read_etf_fee(self._code)
+            if fee is None:
+                fees = get_fees()
+                fee = fees.get(self._code)
             if fee is None:
                 rakuten = get_rakuten_data()
                 entry = rakuten.get(self._code)
@@ -142,4 +181,6 @@ class ETF:
         )
 
     def __repr__(self) -> str:
+        if self._live:
+            return f"ETF('{self._code}', live=True)"
         return f"ETF('{self._code}')"
