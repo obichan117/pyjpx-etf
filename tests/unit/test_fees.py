@@ -43,7 +43,7 @@ def _mock_get_ok(html=MOCK_HTML):
 def _reset(tmp_path, monkeypatch):
     """Reset memory cache and redirect disk cache to tmp_path."""
     fees._reset_cache()
-    monkeypatch.setattr(fees, "_CACHE_FILE", tmp_path / "fees.json")
+    monkeypatch.setattr(fees._cache, "_disk_path", tmp_path / "fees.json")
 
 
 class TestParseFeeString:
@@ -142,12 +142,10 @@ class TestFeeDiskCache:
         assert result["1306"] == 0.06
 
     @patch("pyjpx_etf._internal.fees.requests.get", return_value=_mock_get_ok())
-    def test_expired_disk_cache_triggers_fetch(
-        self, mock_get, tmp_path, monkeypatch
-    ):
+    def test_expired_disk_cache_triggers_fetch(self, mock_get, tmp_path, monkeypatch):
         _reset(tmp_path, monkeypatch)
         cache_file = tmp_path / "fees.json"
-        old_ts = time.time() - fees._CACHE_TTL - 1
+        old_ts = time.time() - fees._cache._ttl - 1
         cache_file.write_text(
             json.dumps(
                 {"timestamp": old_ts, "fees": {"1306": 99.0}},
@@ -160,11 +158,9 @@ class TestFeeDiskCache:
         mock_get.assert_called_once()
 
     @patch("pyjpx_etf._internal.fees.requests.get", return_value=_mock_get_ok())
-    def test_refresh_bypasses_all_caches(
-        self, mock_get, tmp_path, monkeypatch
-    ):
+    def test_refresh_bypasses_all_caches(self, mock_get, tmp_path, monkeypatch):
         _reset(tmp_path, monkeypatch)
-        fees._memory_cache = {"1306": 99.0}
+        fees._cache._memory = {"1306": 99.0}
         cache_file = tmp_path / "fees.json"
         cache_file.write_text(
             json.dumps(

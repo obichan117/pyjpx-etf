@@ -1,3 +1,4 @@
+import importlib
 from unittest.mock import patch
 
 import pandas as pd
@@ -5,6 +6,10 @@ import pytest
 
 from pyjpx_etf import config
 from pyjpx_etf.ranking import ranking
+
+# pyjpx_etf.ranking is shadowed by the function in __init__.py.
+# importlib gives us the actual module for patching.
+_ranking_mod = importlib.import_module("pyjpx_etf.ranking")
 
 MOCK_RAKUTEN = {
     "1306": {
@@ -52,74 +57,88 @@ MOCK_RAKUTEN = {
 }
 
 
-@patch("pyjpx_etf.ranking.get_rakuten_data", return_value=MOCK_RAKUTEN)
+@patch.object(_ranking_mod, "get_fees", return_value={})
+@patch.object(_ranking_mod, "get_rakuten_data", return_value=MOCK_RAKUTEN)
 class TestRanking:
     def setup_method(self):
         config.lang = "ja"
 
-    def test_default_returns_dataframe(self, mock_data):
+    def test_default_returns_dataframe(self, mock_data, mock_fees):
         df = ranking()
         assert isinstance(df, pd.DataFrame)
-        assert list(df.columns) == ["code", "name", "return", "fee", "dividend_yield"]
+        assert list(df.columns) == [
+            "code",
+            "name",
+            "return",
+            "fee",
+            "dividend_yield",
+        ]
 
-    def test_default_top_10_sorted_desc(self, mock_data):
+    def test_default_top_10_sorted_desc(self, mock_data, mock_fees):
         df = ranking()
         assert len(df) == 3  # only 3 ETFs in mock
         assert df.iloc[0]["code"] == "2644"  # highest 1m return
         assert df.iloc[2]["code"] == "1321"  # lowest 1m return
 
-    def test_positive_n(self, mock_data):
+    def test_positive_n(self, mock_data, mock_fees):
         df = ranking(n=2)
         assert len(df) == 2
         assert df.iloc[0]["code"] == "2644"
 
-    def test_negative_n_worst(self, mock_data):
+    def test_negative_n_worst(self, mock_data, mock_fees):
         df = ranking(n=-2)
         assert len(df) == 2
         assert df.iloc[0]["code"] == "1321"  # worst first
 
-    def test_zero_n_returns_all(self, mock_data):
+    def test_zero_n_returns_all(self, mock_data, mock_fees):
         df = ranking(n=0)
         assert len(df) == 3
 
-    def test_period_1y(self, mock_data):
+    def test_period_1y(self, mock_data, mock_fees):
         df = ranking(period="1y")
         assert df.iloc[0]["return"] == 25.00
 
-    def test_filters_none_returns(self, mock_data):
+    def test_filters_none_returns(self, mock_data, mock_fees):
         df = ranking(period="3y")
         assert len(df) == 2  # 2644 has 3y=None
         codes = set(df["code"])
         assert "2644" not in codes
 
-    def test_japanese_names(self, mock_data):
+    def test_japanese_names(self, mock_data, mock_fees):
         df = ranking()
         names = set(df["name"])
         assert "TOPIX連動型上場投資信託" in names
 
-    def test_english_names(self, mock_data):
+    def test_english_names(self, mock_data, mock_fees):
         config.lang = "en"
         df = ranking()
         names = set(df["name"])
         assert "TOPIX ETF" in names
 
-    def test_invalid_period_raises(self, mock_data):
+    def test_invalid_period_raises(self, mock_data, mock_fees):
         with pytest.raises(ValueError, match="period must be one of"):
             ranking(period="2y")
 
-    def test_ytd_period(self, mock_data):
+    def test_ytd_period(self, mock_data, mock_fees):
         df = ranking(period="ytd")
         assert df.iloc[0]["return"] == 3.50
 
-    def test_includes_fee_and_yield(self, mock_data):
+    def test_includes_fee_and_yield(self, mock_data, mock_fees):
         df = ranking(n=1)
         assert df.iloc[0]["fee"] == 0.41
         assert df.iloc[0]["dividend_yield"] == 0.50
 
 
-@patch("pyjpx_etf.ranking.get_rakuten_data", return_value={})
+@patch.object(_ranking_mod, "get_fees", return_value={})
+@patch.object(_ranking_mod, "get_rakuten_data", return_value={})
 class TestRankingEmpty:
-    def test_empty_data_returns_empty_df(self, mock_data):
+    def test_empty_data_returns_empty_df(self, mock_data, mock_fees):
         df = ranking()
         assert df.empty
-        assert list(df.columns) == ["code", "name", "return", "fee", "dividend_yield"]
+        assert list(df.columns) == [
+            "code",
+            "name",
+            "return",
+            "fee",
+            "dividend_yield",
+        ]

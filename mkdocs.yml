@@ -41,8 +41,16 @@ nav:
   - Guide:
       - ETF Data: guide/etf.md
       - ETF Ranking: guide/ranking.md
+      - Local Database: guide/database.md
+      - Stock Search: guide/search.md
+      - Weight History: guide/history.md
+      - CLI Reference: guide/cli.md
   - API Reference:
       - ETF: api/etf.md
       - ranking: api/ranking.md
+      - search: api/search.md
+      - history: api/history.md
+      - sync: api/sync.md
+      - Models: api/models.md
       - Config: api/config.md
       - Exceptions: api/exceptions.md

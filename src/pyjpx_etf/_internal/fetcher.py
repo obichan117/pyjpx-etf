@@ -55,8 +55,8 @@ def fetch_pcf(code: str) -> str:
         raise ETFNotFoundError(
             f"ETF {code}: PCF data not found. "
             "The code may be invalid, the ETF may not be covered by "
-            "available providers (ICE, Solactive), or the code may "
-            "belong to an ETN (which has no PCF data)."
+            "available providers (ICE, Solactive, S&P Global), or the "
+            "code may belong to an ETN (which has no PCF data)."
         )
 
     # Any non-CSV response present → likely outside data hours or unsupported code

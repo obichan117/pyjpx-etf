@@ -1,7 +1,14 @@
+import importlib
 from unittest.mock import patch
 
 from pyjpx_etf import config
-from pyjpx_etf.cli import _format_yen, _resolve_code, main
+from pyjpx_etf._internal.cli_fmt import format_yen
+from pyjpx_etf._internal.cli_show import _resolve_code
+from pyjpx_etf.cli import main
+
+# pyjpx_etf.ranking is shadowed by the function in __init__.py.
+# importlib gives us the actual module for patching.
+_ranking_mod = importlib.import_module("pyjpx_etf.ranking")
 
 MOCK_CSV = """\
 ETF Code,ETF Name,Fund Cash Component,Shares Outstanding,Fund Date
@@ -21,22 +28,22 @@ MOCK_JAPANESE_NAMES = {
 
 class TestFormatYen:
     def test_cho(self):
-        assert _format_yen(1_3000_0000_0000) == "1.3兆"
+        assert format_yen(1_3000_0000_0000) == "1.3兆"
 
     def test_cho_integer(self):
-        assert _format_yen(2_0000_0000_0000) == "2兆"
+        assert format_yen(2_0000_0000_0000) == "2兆"
 
     def test_large_oku(self):
-        assert _format_yen(1300_0000_0000) == "1300億"
+        assert format_yen(1300_0000_0000) == "1300億"
 
     def test_medium_oku(self):
-        assert _format_yen(52_0000_0000) == "52億"
+        assert format_yen(52_0000_0000) == "52億"
 
     def test_small_oku(self):
-        assert _format_yen(1500_0000) == "0.15億"
+        assert format_yen(1500_0000) == "0.15億"
 
     def test_one_oku(self):
-        assert _format_yen(1_0000_0000) == "1億"
+        assert format_yen(1_0000_0000) == "1億"
 
 
 class TestResolveCode:
@@ -85,27 +92,35 @@ class TestCLI:
     def setup_method(self):
         config.lang = "en"
 
-    def test_output_contains_etf_info(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_output_contains_etf_info(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         with patch("sys.argv", ["etf", "1306"]):
             main()
         out = capsys.readouterr().out
         assert "1306" in out
         assert "TOPIX ETF" in out
 
-    def test_output_contains_holdings(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_output_contains_holdings(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         with patch("sys.argv", ["etf", "1306"]):
             main()
         out = capsys.readouterr().out
         assert "NISSUI" in out
         assert "TOYOTA" in out
 
-    def test_weight_has_one_decimal(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_weight_has_one_decimal(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         with patch("sys.argv", ["etf", "1306"]):
             main()
         out = capsys.readouterr().out
         assert "60.6%" in out
 
-    def test_fee_absent_when_none(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_fee_absent_when_none(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         with patch("sys.argv", ["etf", "1306"]):
             main()
         out = capsys.readouterr().out
@@ -119,7 +134,9 @@ class TestCLI:
         assert "Nav:" in out
         assert "億" in out
 
-    def test_nav_between_title_and_table(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_nav_between_title_and_table(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         with patch("sys.argv", ["etf", "1306"]):
             main()
         out = capsys.readouterr().out
@@ -137,14 +154,18 @@ class TestCLIEnFlag:
     def setup_method(self):
         config.lang = "ja"
 
-    def test_en_flag_shows_english(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_en_flag_shows_english(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         with patch("sys.argv", ["etf", "1306", "--en"]):
             main()
         out = capsys.readouterr().out
         assert "TOPIX ETF" in out
         assert "NISSUI" in out
 
-    def test_default_shows_japanese(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_default_shows_japanese(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         with patch("sys.argv", ["etf", "1306"]):
             main()
         out = capsys.readouterr().out
@@ -160,21 +181,27 @@ MOCK_FEES = {"1306": 0.06}
 @patch("pyjpx_etf.etf.fetch_pcf", return_value=MOCK_CSV)
 @patch("pyjpx_etf.etf.get_japanese_names", return_value=MOCK_JAPANESE_NAMES)
 class TestCLIFee:
-    def test_fee_shown_in_japanese(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_fee_shown_in_japanese(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         config.lang = "ja"
         with patch("sys.argv", ["etf", "1306"]):
             main()
         out = capsys.readouterr().out
         assert "信託報酬: 0.06%" in out
 
-    def test_fee_shown_in_english(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_fee_shown_in_english(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         config.lang = "ja"
         with patch("sys.argv", ["etf", "1306", "--en"]):
             main()
         out = capsys.readouterr().out
         assert "Fee: 0.06%" in out
 
-    def test_nav_and_fee_on_same_line(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_nav_and_fee_on_same_line(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         config.lang = "ja"
         with patch("sys.argv", ["etf", "1306"]):
             main()
@@ -195,7 +222,9 @@ class TestCLIAllFlag:
     def setup_method(self):
         config.lang = "en"
 
-    def test_default_shows_top_10(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_default_shows_top_10(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         with patch("sys.argv", ["etf", "1306"]):
             main()
         out = capsys.readouterr().out
@@ -203,14 +232,18 @@ class TestCLIAllFlag:
         assert "NISSUI" in out
         assert "TOYOTA" in out
 
-    def test_all_flag_shows_all(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_all_flag_shows_all(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         with patch("sys.argv", ["etf", "1306", "-a"]):
             main()
         out = capsys.readouterr().out
         assert "NISSUI" in out
         assert "TOYOTA" in out
 
-    def test_all_long_flag(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_all_long_flag(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         with patch("sys.argv", ["etf", "1306", "--all"]):
             main()
         out = capsys.readouterr().out
@@ -226,7 +259,9 @@ class TestCLIAlias:
     def setup_method(self):
         config.lang = "en"
 
-    def test_alias_resolves_to_code(self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+    def test_alias_resolves_to_code(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys
+    ):
         with patch("sys.argv", ["etf", "topix"]):
             main()
         mock_fetch.assert_called_once_with("1306")
@@ -264,12 +299,17 @@ MOCK_RANKING_DATA = {
 }
 
 
-@patch("pyjpx_etf.ranking.get_rakuten_data", return_value=MOCK_RANKING_DATA)
+@patch.object(_ranking_mod, "get_fees", return_value={})
+@patch.object(
+    _ranking_mod,
+    "get_rakuten_data",
+    return_value=MOCK_RANKING_DATA,
+)
 class TestCLIRank:
     def setup_method(self):
         config.lang = "ja"
 
-    def test_rank_default(self, mock_data, capsys):
+    def test_rank_default(self, mock_data, mock_fees, capsys):
         with patch("sys.argv", ["etf", "rank"]):
             main()
         out = capsys.readouterr().out
@@ -277,33 +317,70 @@ class TestCLIRank:
         assert "2644" in out
         assert "Return (1m)" in out
 
-    def test_rank_with_count(self, mock_data, capsys):
+    def test_rank_with_count(self, mock_data, mock_fees, capsys):
         with patch("sys.argv", ["etf", "rank", "1"]):
             main()
         out = capsys.readouterr().out
         assert "2644" in out  # top 1 by 1m
 
-    def test_rank_with_period(self, mock_data, capsys):
+    def test_rank_with_period(self, mock_data, mock_fees, capsys):
         with patch("sys.argv", ["etf", "rank", "10", "1y"]):
             main()
         out = capsys.readouterr().out
         assert "Return (1y)" in out
 
-    def test_rank_negative_count(self, mock_data, capsys):
+    def test_rank_negative_count(self, mock_data, mock_fees, capsys):
         with patch("sys.argv", ["etf", "rank", "-1"]):
             main()
         out = capsys.readouterr().out
         # worst 1 by 1m = 1306 (2.50 < 5.10)
         assert "1306" in out
 
-    def test_rank_en_flag(self, mock_data, capsys):
+    def test_rank_en_flag(self, mock_data, mock_fees, capsys):
         with patch("sys.argv", ["etf", "rank", "--en"]):
             main()
         out = capsys.readouterr().out
         assert "TOPIX ETF" in out
 
-    def test_rank_japanese_names_default(self, mock_data, capsys):
+    def test_rank_japanese_names_default(self, mock_data, mock_fees, capsys):
         with patch("sys.argv", ["etf", "rank"]):
             main()
         out = capsys.readouterr().out
         assert "TOPIX連動型上場投資信託" in out
+
+
+@patch("pyjpx_etf.etf.get_rakuten_data", return_value={})
+@patch("pyjpx_etf.etf.get_fees", return_value={})
+@patch("pyjpx_etf.etf.fetch_pcf", return_value=MOCK_CSV)
+@patch("pyjpx_etf.etf.get_japanese_names", return_value={})
+@patch("pyjpx_etf.etf.db.db_exists", return_value=False)
+class TestCLILiveFlag:
+    def setup_method(self):
+        config.lang = "en"
+
+    def test_live_flag(
+        self,
+        mock_db_exists,
+        mock_master,
+        mock_fetch,
+        mock_fees,
+        mock_rakuten,
+        capsys,
+    ):
+        with patch("sys.argv", ["etf", "1306", "--live"]):
+            main()
+        out = capsys.readouterr().out
+        assert "1306" in out
+        assert "TOPIX ETF" in out
+        mock_fetch.assert_called_once_with("1306")
+
+
+class TestCLIHelp:
+    def test_help_includes_new_commands(self, capsys):
+        with patch("sys.argv", ["etf", "--help"]):
+            main()
+        out = capsys.readouterr().out
+        assert "sync" in out
+        assert "find" in out
+        assert "history" in out
+        assert "--live" in out

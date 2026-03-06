@@ -1,3 +1,4 @@
+import datetime
 import warnings
 from unittest.mock import call, patch
 
@@ -5,6 +6,7 @@ import pandas as pd
 import pytest
 
 from pyjpx_etf import ETF, config
+from pyjpx_etf.models import ETFInfo, Holding
 
 MOCK_CSV = """\
 ETF Code,ETF Name,Fund Cash Component,Shares Outstanding,Fund Date
@@ -158,17 +160,23 @@ class TestETFFee:
         e = ETF("1306")
         assert e.fee == 0.06
 
-    def test_fee_returns_none_when_missing(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+    def test_fee_returns_none_when_missing(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten
+    ):
         e = ETF("9999")
         assert e.fee is None
 
-    def test_fee_cached_after_first_access(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+    def test_fee_cached_after_first_access(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten
+    ):
         e = ETF("1306")
         _ = e.fee
         _ = e.fee
         mock_fees.assert_called_once()
 
-    def test_fee_independent_of_load(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+    def test_fee_independent_of_load(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten
+    ):
         e = ETF("1306")
         _ = e.fee
         mock_fetch.assert_not_called()
@@ -185,16 +193,22 @@ class TestETFFeeFallback:
     def setup_method(self):
         config.lang = "en"
 
-    def test_jpx_fee_used_when_available(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+    def test_jpx_fee_used_when_available(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten
+    ):
         e = ETF("1306")
         assert e.fee == 0.06
         mock_rakuten.assert_not_called()
 
-    def test_rakuten_fee_used_when_jpx_missing(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+    def test_rakuten_fee_used_when_jpx_missing(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten
+    ):
         e = ETF("9999")
         assert e.fee == 0.33
 
-    def test_none_when_both_missing(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+    def test_none_when_both_missing(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten
+    ):
         e = ETF("8888")
         assert e.fee is None
 
@@ -249,3 +263,134 @@ class TestRefreshOnMiss:
         assert len(w) == 1
         assert "1332" in str(w[0].message)
         assert "7203" in str(w[0].message)
+
+
+MOCK_DB_INFO = ETFInfo(
+    code="1306",
+    name="TOPIX ETF",
+    cash_component=1000.0,
+    shares_outstanding=100000,
+    date=datetime.date(2026, 3, 1),
+)
+MOCK_DB_HOLDINGS = [
+    Holding(
+        code="7203",
+        name="TOYOTA",
+        isin="JP001",
+        exchange="TSE",
+        currency="JPY",
+        shares=1000.0,
+        price=2500.0,
+        weight=0.6,
+    ),
+    Holding(
+        code="6857",
+        name="ADVANTEST",
+        isin="JP002",
+        exchange="TSE",
+        currency="JPY",
+        shares=500.0,
+        price=5000.0,
+        weight=0.4,
+    ),
+]
+
+
+@patch("pyjpx_etf.etf.db.db_exists", return_value=True)
+@patch("pyjpx_etf.etf.db.read_holdings", return_value=MOCK_DB_HOLDINGS)
+@patch("pyjpx_etf.etf.db.read_etf_info", return_value=MOCK_DB_INFO)
+@patch("pyjpx_etf.etf.get_japanese_names", return_value={})
+class TestETFFromDB:
+    """When DB exists and has data, reads from DB without hitting network."""
+
+    def setup_method(self):
+        config.lang = "en"
+
+    def test_reads_from_db(self, mock_names, mock_info, mock_holdings, mock_exists):
+        e = ETF("1306")
+        assert e.info.code == "1306"
+        mock_info.assert_called_once_with("1306")
+
+    def test_db_holdings(self, mock_names, mock_info, mock_holdings, mock_exists):
+        e = ETF("1306")
+        assert len(e.holdings) == 2
+
+    def test_repr_default(self, mock_names, mock_info, mock_holdings, mock_exists):
+        e = ETF("1306")
+        assert repr(e) == "ETF('1306')"
+
+
+@patch("pyjpx_etf.etf.db.db_exists", return_value=True)
+@patch("pyjpx_etf.etf.db.read_holdings", return_value=MOCK_DB_HOLDINGS)
+@patch("pyjpx_etf.etf.db.read_etf_info", return_value=MOCK_DB_INFO)
+@patch("pyjpx_etf.etf.fetch_pcf", return_value=MOCK_CSV)
+@patch("pyjpx_etf.etf.get_japanese_names", return_value={})
+class TestETFLiveMode:
+    """live=True skips DB and always fetches from HTTP providers."""
+
+    def setup_method(self):
+        config.lang = "en"
+
+    def test_live_bypasses_db(
+        self,
+        mock_names,
+        mock_fetch,
+        mock_info,
+        mock_holdings,
+        mock_exists,
+    ):
+        e = ETF("1306", live=True)
+        _ = e.info
+        mock_fetch.assert_called_once_with("1306")
+        mock_info.assert_not_called()
+
+    def test_live_repr(
+        self,
+        mock_names,
+        mock_fetch,
+        mock_info,
+        mock_holdings,
+        mock_exists,
+    ):
+        e = ETF("1306", live=True)
+        assert repr(e) == "ETF('1306', live=True)"
+
+
+@patch("pyjpx_etf.etf.db.db_exists", return_value=True)
+@patch("pyjpx_etf.etf.db.read_holdings", return_value=None)
+@patch("pyjpx_etf.etf.db.read_etf_info", return_value=None)
+@patch("pyjpx_etf.etf.fetch_pcf", return_value=MOCK_CSV)
+@patch("pyjpx_etf.etf.get_japanese_names", return_value={})
+class TestETFDBFallback:
+    """When DB exists but returns None, falls back to live fetch."""
+
+    def setup_method(self):
+        config.lang = "en"
+
+    def test_falls_back_to_live_when_db_empty(
+        self,
+        mock_names,
+        mock_fetch,
+        mock_info,
+        mock_holdings,
+        mock_exists,
+    ):
+        e = ETF("9999")
+        _ = e.info
+        mock_fetch.assert_called_once_with("9999")
+
+
+@patch("pyjpx_etf.etf.db.db_exists", return_value=True)
+@patch("pyjpx_etf.etf.db.read_etf_fee", return_value=0.06)
+@patch("pyjpx_etf.etf.get_fees", return_value={})
+@patch("pyjpx_etf.etf.get_rakuten_data", return_value={})
+class TestETFFeeFromDB:
+    """When DB has fee, uses it without hitting JPX/Rakuten."""
+
+    def setup_method(self):
+        config.lang = "en"
+
+    def test_fee_from_db(self, mock_rakuten, mock_fees, mock_db_fee, mock_exists):
+        e = ETF("1306")
+        assert e.fee == 0.06
+        mock_fees.assert_not_called()

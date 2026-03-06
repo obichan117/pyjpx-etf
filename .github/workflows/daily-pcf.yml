@@ -1,0 +1,36 @@
+name: Daily PCF Snapshot
+
+on:
+  schedule:
+    - cron: "55 22 * * 0-4"  # 07:55 JST (UTC+9), Mon-Fri
+  workflow_dispatch: {}       # manual trigger
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - run: uv sync
+
+      # Download previous DB from release (if exists)
+      - name: Download existing DB
+        run: gh release download db-latest -p pcf.db -D /tmp || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Run pipeline
+      - name: Run PCF pipeline
+        run: uv run python -m pyjpx_etf._internal.pipeline_cli --db /tmp/pcf.db --delay 0.3
+
+      # Upload updated DB to release
+      - name: Upload DB to release
+        run: |
+          gh release upload db-latest /tmp/pcf.db --clobber 2>/dev/null || \
+          gh release create db-latest /tmp/pcf.db --title "PCF Database" --notes "Daily PCF snapshot. Updated automatically by GitHub Actions."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

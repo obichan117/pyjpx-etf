@@ -15,3 +15,7 @@ class FetchError(PyJPXETFError):
 
 class ParseError(PyJPXETFError):
     """Raised when CSV content cannot be parsed."""
+
+
+class DatabaseError(PyJPXETFError):
+    """Raised when the local database is missing or corrupted."""

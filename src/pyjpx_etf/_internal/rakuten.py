@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import csv
 import io
-import json
-import time
 from pathlib import Path
 
 import requests
 
 from ..config import _RAKUTEN_URL, config
+from ._cache import TieredCache
 
 # Column indices (headerless CSV)
 _COL_TICKER = 0  # e.g. "1306.T"
@@ -39,17 +38,6 @@ PERIOD_COLUMNS: dict[str, int] = {
     "10y": _COL_RETURN_10Y,
     "ytd": _COL_RETURN_YTD,
 }
-
-_CACHE_TTL = 24 * 3600  # 1 day in seconds
-_CACHE_FILE = Path.home() / ".cache" / "pyjpx-etf" / "rakuten.json"
-
-_memory_cache: dict[str, dict] | None = None
-
-
-def _reset_cache() -> None:
-    """Reset in-memory cache. Intended for testing."""
-    global _memory_cache  # noqa: PLW0603
-    _memory_cache = None
 
 
 def _fetch_rakuten_csv() -> str:
@@ -108,27 +96,18 @@ def _parse_rakuten_csv(text: str) -> dict[str, dict]:
     return result
 
 
-def _load_disk_cache() -> dict[str, dict] | None:
-    """Read disk cache if it exists and is fresh. Return None otherwise."""
-    try:
-        data = json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
-        if time.time() - data["timestamp"] < _CACHE_TTL:
-            return data["rakuten"]
-    except Exception:
-        pass
-    return None
+def _fetch_and_parse() -> dict[str, dict]:
+    return _parse_rakuten_csv(_fetch_rakuten_csv())
 
 
-def _save_disk_cache(rakuten: dict[str, dict]) -> None:
-    """Write data to disk cache. Fail silently on any error."""
-    try:
-        _CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"timestamp": time.time(), "rakuten": rakuten}
-        _CACHE_FILE.write_text(
-            json.dumps(payload, ensure_ascii=False), encoding="utf-8"
-        )
-    except Exception:
-        pass
+_cache = TieredCache(
+    disk_path=Path.home() / ".cache" / "pyjpx-etf" / "rakuten.json",
+    ttl=24 * 3600,
+    key="rakuten",
+    fetcher=_fetch_and_parse,
+)
+
+_reset_cache = _cache.reset
 
 
 def get_rakuten_data(*, refresh: bool = False) -> dict[str, dict]:
@@ -138,23 +117,4 @@ def get_rakuten_data(*, refresh: bool = False) -> dict[str, dict]:
     Pass ``refresh=True`` to skip both caches and fetch fresh data.
     Returns an empty dict if the fetch or parse fails (graceful degradation).
     """
-    global _memory_cache  # noqa: PLW0603
-
-    if not refresh and _memory_cache is not None:
-        return _memory_cache
-
-    if not refresh:
-        disk = _load_disk_cache()
-        if disk is not None:
-            _memory_cache = disk
-            return _memory_cache
-
-    try:
-        data = _parse_rakuten_csv(_fetch_rakuten_csv())
-        _memory_cache = data
-        _save_disk_cache(data)
-        return _memory_cache
-    except Exception:
-        if _memory_cache is None:
-            _memory_cache = {}
-        return _memory_cache
+    return _cache.get(refresh=refresh)
