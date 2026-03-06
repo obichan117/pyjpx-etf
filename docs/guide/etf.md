@@ -10,6 +10,16 @@ import pyjpx_etf as etf
 e = etf.ETF("1306")
 ```
 
+By default, data is read from the local SQLite database (if available via `etf sync`). This is fast, reliable, and works offline. If the DB doesn't exist or doesn't contain the ETF, it falls back to a live HTTP fetch.
+
+```python
+# DB-first (default) — reads from local DB, falls back to live
+e = etf.ETF("1306")
+
+# Force live — skip DB, always fetch from HTTP providers
+e = etf.ETF("1306", live=True)
+```
+
 ### ETF Info
 
 Access metadata via the `info` property. Names are Japanese by default:
@@ -39,6 +49,17 @@ for h in e.holdings[:3]:
 
 Each `Holding` has: `code`, `name`, `isin`, `exchange`, `currency`, `shares`, `price`, `weight`.
 
+### Top Holdings
+
+Get a quick summary of the top N holdings:
+
+```python
+df = e.top()       # top 10 by weight (default)
+df = e.top(20)     # top 20
+```
+
+Returns a DataFrame with columns: `code`, `name`, `weight` (as percentage).
+
 ### NAV
 
 Total fund net asset value (cash + holdings market value) in yen:
@@ -47,15 +68,15 @@ Total fund net asset value (cash + holdings market value) in yen:
 e.nav  # 515997003139 (in yen)
 ```
 
-### Fee (信託報酬)
+### Fee
 
-Trust fee (信託報酬), sourced from JPX with Rakuten Securities as fallback. Independent of PCF data:
+Trust fee (信託報酬), sourced from the local DB, JPX fee page, or Rakuten Securities (in order). Independent of PCF data:
 
 ```python
 e.fee  # 0.06 (means 0.06%)
 ```
 
-Returns `None` if the fee is unavailable from both sources.
+Returns `None` if the fee is unavailable from all sources.
 
 ### DataFrame Output
 
@@ -92,5 +113,8 @@ try:
 except ETFNotFoundError:
     print("ETF not found")
 except FetchError:
-    print("Network error")
+    print("Network error or outside data hours")
 ```
+
+!!! info "Error precedence"
+    `ETFNotFoundError` is only raised when **all** providers return 404. If any provider returns a server error or network error, `FetchError` is raised instead — the code might be valid but temporarily unavailable.

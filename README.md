@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/pypi/l/pyjpx-etf)](https://github.com/obichan117/pyjpx-etf/blob/main/LICENSE)
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue)](https://obichan117.github.io/pyjpx-etf)
 
-A clean, beginner-friendly Python library for fetching JPX ETF portfolio composition (PCF) data and ranking ETFs by returns.
+A clean, beginner-friendly Python library for fetching JPX ETF portfolio composition (PCF) data, ranking ETFs by returns, and analyzing holdings.
 
 ## Installation
 
@@ -18,6 +18,7 @@ pip install pyjpx-etf
 ```python
 import pyjpx_etf as etf
 
+# ETF lookup (auto-syncs local DB on first use)
 e = etf.ETF("1306")
 print(e.info.name)       # "TOPIX連動型上場投資信託"
 print(e.nav)             # total fund NAV in yen
@@ -26,14 +27,43 @@ print(e.holdings[:3])
 # [Holding(code='7203', name='トヨタ自動車', ...),
 #  Holding(code='8306', name='三菱UFJフィナンシャル・グループ', ...),
 #  Holding(code='6758', name='ソニーグループ', ...)]
+```
 
-# Rank ETFs by returns
+## Python API
+
+### ETF Ranking
+
+```python
 etf.ranking()              # top 10 by 1-month return
 etf.ranking("1y", n=20)    # top 20 by 1-year return
 etf.ranking("ytd", n=-5)   # worst 5 by ytd return
 ```
 
+### Reverse Stock Search
+
+```python
+etf.search("6857")         # which ETFs hold Advantest?
+etf.search("7203", n=5)    # top 5 ETFs holding Toyota
+```
+
+### Weight History
+
+```python
+etf.history("1306", "6857")  # Advantest weight in TOPIX over time
+etf.history("1306")          # top holdings with weight change
+```
+
+### Language & Config
+
+```python
+etf.config.lang = "en"          # "ja" (default) or "en"
+etf.config.timeout = 60         # HTTP timeout in seconds
+etf.config.request_delay = 0.5  # delay between retries
+```
+
 ## CLI
+
+### ETF Lookup
 
 ```
 $ etf 1306
@@ -49,9 +79,12 @@ Nav: 5170億  信託報酬: 0.06%
  ...
 ```
 
-### ETF Ranking
+```
+$ etf topix --en -a     # English, all holdings
+$ etf 1306 --live       # skip local DB, fetch live
+```
 
-Rank all TSE ETFs by period returns:
+### ETF Ranking
 
 ```
 $ etf rank                # top 10 by 1-month return
@@ -61,9 +94,32 @@ $ etf rank -5 ytd --en    # worst 5 by ytd, English names
 
 Available periods: `1m` (default), `3m`, `6m`, `1y`, `3y`, `5y`, `10y`, `ytd`
 
-### Aliases
+### Stock Search
 
-Use shorthand aliases instead of codes:
+```
+$ etf find 6857            # ETFs holding Advantest
+$ etf find 7203 5          # top 5 ETFs holding Toyota
+$ etf find 6857 --en       # English names
+```
+
+### Weight History
+
+```
+$ etf history 1306 6857    # Advantest weight in TOPIX over time
+$ etf history 1306         # top holdings with weight change
+$ etf history 1306 --en    # English names
+```
+
+### Database Sync
+
+The local database auto-syncs on first use each day. To force a refresh:
+
+```
+$ etf sync                 # download/update
+$ etf sync --force         # force re-download
+```
+
+### Aliases
 
 | Alias | Code | ETF |
 |-------|------|-----|
@@ -80,34 +136,8 @@ Use shorthand aliases instead of codes:
 ### Options
 
 ```
-$ etf sox --en         # English names
-$ etf topix -a         # all holdings (not just top 10)
-$ etf 1306 -a --en     # combine options
-$ etf --help           # show all commands
-$ etf --version        # show version
-```
-
-## Language Setting
-
-Names default to Japanese. Switch to English via config or CLI flag:
-
-```python
-import pyjpx_etf as etf
-
-# English names
-etf.config.lang = "en"
-e = etf.ETF("1306")
-print(e.info.name)  # "TOPIX ETF"
-```
-
-## Configuration
-
-```python
-import pyjpx_etf as etf
-
-etf.config.timeout = 60
-etf.config.request_delay = 0.5
-etf.config.lang = "en"  # "ja" (default) or "en"
+$ etf --help               # show all commands
+$ etf --version            # show version
 ```
 
 ## Documentation

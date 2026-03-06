@@ -6,6 +6,26 @@
 pip install pyjpx-etf
 ```
 
+## Setup: Sync the Database
+
+pyjpx-etf works best with a local database. Download it once:
+
+```python
+import pyjpx_etf as etf
+etf.sync()
+```
+
+Or from the CLI:
+
+```
+$ etf sync
+```
+
+This downloads a pre-built SQLite database (~5 MB) from GitHub Releases to `~/.cache/pyjpx-etf/pcf.db`. The database is updated daily by a GitHub Actions cron job.
+
+!!! tip "Without the database"
+    You can skip `sync` — ETF lookups will fall back to live HTTP. But `search()` and `history()` require the local DB.
+
 ## Basic Usage
 
 ```python
@@ -30,6 +50,16 @@ for h in e.holdings[:3]:
 df = e.to_dataframe()
 ```
 
+### DB-First vs Live
+
+```python
+# Default: reads from local DB, falls back to live HTTP
+e = etf.ETF("1306")
+
+# Force live fetch (skip DB, always hit HTTP providers)
+e = etf.ETF("1306", live=True)
+```
+
 ### Language
 
 Names default to Japanese (`config.lang = "ja"`). Switch to English:
@@ -51,7 +81,7 @@ $ etf 1306 --en
 ```python
 import pyjpx_etf as etf
 
-etf.config.timeout = 60        # HTTP timeout in seconds
+etf.config.timeout = 60         # HTTP timeout in seconds
 etf.config.request_delay = 0.5  # Delay between provider retries
 etf.config.lang = "en"          # "ja" (default) or "en"
 ```
@@ -80,12 +110,35 @@ Returns a DataFrame with columns: `code`, `name`, `return`, `fee`, `dividend_yie
 
 Available periods: `1m`, `3m`, `6m`, `1y`, `3y`, `5y`, `10y`, `ytd`.
 
-### CLI
+## Reverse Stock Search
+
+Find which ETFs hold a given stock:
+
+```python
+df = etf.search("6857")         # ETFs holding Advantest
+df = etf.search("7203", n=5)    # top 5 ETFs holding Toyota
+```
+
+## Weight History
+
+Track holdings over time:
+
+```python
+df = etf.history("1306", "6857")  # Advantest weight in TOPIX over time
+df = etf.history("1306")          # top holdings with weight change
+```
+
+## CLI
 
 ```
-$ etf rank                # top 10 by 1-month return
-$ etf rank 20 1y          # top 20 by 1-year return
-$ etf rank -5 ytd --en    # worst 5 by ytd, English names
+$ etf 1306                 # ETF portfolio composition
+$ etf topix --en -a        # all holdings, English, using alias
+$ etf rank                 # top 10 by 1-month return
+$ etf rank 20 1y --en      # top 20 by 1-year return, English
+$ etf sync                 # download/update database
+$ etf find 6857            # ETFs holding Advantest
+$ etf history 1306 6857    # weight tracking
+$ etf --help               # all commands
 ```
 
 ## Data Sources
@@ -96,6 +149,7 @@ pyjpx-etf fetches data from multiple providers:
 |---|---|
 | ICE Data Services | PCF (portfolio composition) for most TSE ETFs |
 | Solactive AG | PCF for Global X Japan ETFs |
+| S&P Global | PCF for additional ETFs |
 | JPX | Trust fees (信託報酬), Japanese security names |
 | Rakuten Securities | Period returns, dividend yields, supplementary fees |
 
