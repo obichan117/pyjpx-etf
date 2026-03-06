@@ -22,7 +22,11 @@ def _fetch_all_etf_codes() -> list[str]:
 
 
 def _fetch_and_store_pcf(
-    conn, code: str, today: str, *, debug_dir: Path | None = None,
+    conn,
+    code: str,
+    today: str,
+    *,
+    debug_dir: Path | None = None,
 ) -> bool:
     """Fetch PCF for a single ETF and store in DB. Returns True on success."""
     from .fetcher import fetch_pcf
@@ -100,7 +104,9 @@ def _store_master_names(conn) -> None:
 
 
 def run_pipeline(
-    db_path: Path, *, debug_dir: Path | None = None,
+    db_path: Path,
+    *,
+    debug_dir: Path | None = None,
 ) -> None:
     """Main pipeline entry point. Fetches all ETF data and writes to SQLite.
 
@@ -125,14 +131,22 @@ def run_pipeline(
             if i > 0 and config.request_delay > 0:
                 time.sleep(config.request_delay)
             if _fetch_and_store_pcf(
-                conn, code, today, debug_dir=debug_dir,
+                conn,
+                code,
+                today,
+                debug_dir=debug_dir,
             ):
                 success += 1
             else:
                 failed += 1
             if (i + 1) % 50 == 0:
-                logger.info("Progress: %d/%d (success=%d, failed=%d)",
-                            i + 1, len(codes), success, failed)
+                logger.info(
+                    "Progress: %d/%d (success=%d, failed=%d)",
+                    i + 1,
+                    len(codes),
+                    success,
+                    failed,
+                )
                 conn.commit()
 
         conn.commit()

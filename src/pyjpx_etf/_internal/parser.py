@@ -27,8 +27,10 @@ def _split_sections(text: str) -> tuple[str, str]:
     lines = normalized.split("\n")
     for i, line in enumerate(lines):
         lower = line.lower()
-        if "code" in lower and "name" in lower and (
-            "isin" in lower or "shares" in lower
+        if (
+            "code" in lower
+            and "name" in lower
+            and ("isin" in lower or "shares" in lower)
         ):
             # Check this isn't the info header (row 0)
             if i >= 2:

@@ -48,8 +48,7 @@ def _resolve_japanese_names(
         info = replace(info, name=ja_name)
 
     holdings = [
-        replace(h, name=names[h.code]) if h.code in names else h
-        for h in holdings
+        replace(h, name=names[h.code]) if h.code in names else h for h in holdings
     ]
 
     return info, holdings

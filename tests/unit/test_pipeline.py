@@ -43,12 +43,23 @@ class TestFetchAndStorePcf:
     @patch("pyjpx_etf._internal.fetcher.fetch_pcf", return_value="csv_text")
     def test_success(self, mock_fetch, mock_parse, tmp_db):
         info = ETFInfo(
-            code="1306", name="TOPIX", cash_component=1000.0,
-            shares_outstanding=100000, date=datetime.date(2026, 3, 1),
+            code="1306",
+            name="TOPIX",
+            cash_component=1000.0,
+            shares_outstanding=100000,
+            date=datetime.date(2026, 3, 1),
         )
         holdings = [
-            Holding(code="7203", name="TOYOTA", isin="JP001", exchange="TSE",
-                    currency="JPY", shares=1000.0, price=2500.0, weight=1.0),
+            Holding(
+                code="7203",
+                name="TOYOTA",
+                isin="JP001",
+                exchange="TSE",
+                currency="JPY",
+                shares=1000.0,
+                price=2500.0,
+                weight=1.0,
+            ),
         ]
         mock_parse.return_value = (info, holdings)
         conn, _ = tmp_db
@@ -75,7 +86,9 @@ class TestRunPipeline:
         "pyjpx_etf._internal.pipeline._fetch_all_etf_codes",
         return_value=["1306"],
     )
-    def test_runs_full_pipeline(self, mock_codes, mock_pcf, mock_fees, mock_names, tmp_path):
+    def test_runs_full_pipeline(
+        self, mock_codes, mock_pcf, mock_fees, mock_names, tmp_path
+    ):
         db_file = tmp_path / "pipeline.db"
         run_pipeline(db_file)
         assert db_file.is_file()

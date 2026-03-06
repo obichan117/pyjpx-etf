@@ -55,8 +55,9 @@ class TestSync:
         assert mtime1 == mtime2  # not re-downloaded
 
     def test_sync_force_redownloads(self, tmp_path, monkeypatch):
-        from pyjpx_etf.config import config
         import time
+
+        from pyjpx_etf.config import config
 
         monkeypatch.setattr(config, "db_path", tmp_path / "pcf.db")
         path1 = sync(force=True)

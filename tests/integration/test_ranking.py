@@ -34,7 +34,9 @@ class TestRanking:
         with pytest.raises(ValueError):
             ranking("99y")
 
-    @pytest.mark.parametrize("period", ["1m", "3m", "6m", "1y", "3y", "5y", "10y", "ytd"])
+    @pytest.mark.parametrize(
+        "period", ["1m", "3m", "6m", "1y", "3y", "5y", "10y", "ytd"]
+    )
     def test_all_periods(self, period):
         df = ranking(period, n=3)
         assert isinstance(df, pd.DataFrame)

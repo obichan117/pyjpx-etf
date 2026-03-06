@@ -1,5 +1,6 @@
 """Tests for history.py — historical weight tracking."""
 
+import sys
 from unittest.mock import patch
 
 import pandas as pd
@@ -7,6 +8,8 @@ import pytest
 
 from pyjpx_etf.exceptions import DatabaseError
 from pyjpx_etf.history import history
+
+_history_mod = sys.modules["pyjpx_etf.history"]
 
 
 class TestHistory:
@@ -16,7 +19,7 @@ class TestHistory:
         with pytest.raises(DatabaseError, match="Local database not found"):
             history("1306")
 
-    @patch("pyjpx_etf.history.read_history")
+    @patch.object(_history_mod, "read_history")
     @patch("pyjpx_etf._internal.db_core.db_path")
     def test_with_holding_code(self, mock_path, mock_read, tmp_path):
         fake_db = tmp_path / "test.db"
@@ -29,7 +32,7 @@ class TestHistory:
         mock_read.assert_called_once_with("1306", "7203")
         assert len(df) == 1
 
-    @patch("pyjpx_etf.history.read_history")
+    @patch.object(_history_mod, "read_history")
     @patch("pyjpx_etf._internal.db_core.db_path")
     def test_overview(self, mock_path, mock_read, tmp_path):
         fake_db = tmp_path / "test.db"

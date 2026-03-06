@@ -137,10 +137,11 @@ class TestDiskCache:
         _reset(tmp_path, monkeypatch)
         cache_file = tmp_path / "master.json"
         cache_file.write_text("not json", encoding="utf-8")
-        with patch(
-            "pyjpx_etf._internal.master.requests.get"
-        ) as mock_get, patch(
-            "pyjpx_etf._internal.master.pd.read_excel", return_value=MOCK_MASTER_DF
+        with (
+            patch("pyjpx_etf._internal.master.requests.get") as mock_get,
+            patch(
+                "pyjpx_etf._internal.master.pd.read_excel", return_value=MOCK_MASTER_DF
+            ),
         ):
             mock_get.return_value = _mock_get_ok()
             result = master.get_japanese_names()

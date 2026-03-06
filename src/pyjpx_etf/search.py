@@ -8,9 +8,7 @@ from ._internal.db import search_by_holding
 from .exceptions import DatabaseError
 
 
-def search(
-    stock_code: str, *, n: int = 10, date: str | None = None
-) -> pd.DataFrame:
+def search(stock_code: str, *, n: int = 10, date: str | None = None) -> pd.DataFrame:
     """Find ETFs that hold a given stock, ranked by weight.
 
     Parameters
@@ -37,7 +35,5 @@ def search(
 
     _ensure_db()
     if not db_exists():
-        raise DatabaseError(
-            "Local database not found. Check your network connection."
-        )
+        raise DatabaseError("Local database not found. Check your network connection.")
     return search_by_holding(stock_code, n=n, date=date)

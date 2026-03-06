@@ -67,7 +67,9 @@ def sync(*, force: bool = False) -> Path:
                     mb = downloaded / 1_000_000
                     print(
                         f"\rDownloading pcf.db: {mb:.1f} MB ({pct}%)",
-                        end="", file=sys.stderr, flush=True,
+                        end="",
+                        file=sys.stderr,
+                        flush=True,
                     )
         if total > 0:
             print(file=sys.stderr)  # newline after progress

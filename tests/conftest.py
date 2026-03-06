@@ -28,7 +28,10 @@ def _isolate_db(request, tmp_path):
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--integration", action="store_true", default=False, help="run integration tests"
+        "--integration",
+        action="store_true",
+        default=False,
+        help="run integration tests",
     )
 
 

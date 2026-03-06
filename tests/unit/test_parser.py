@@ -82,7 +82,10 @@ class TestParseMalformedCSV:
             parse_pcf("just one line")
 
     def test_empty_info_section(self):
-        csv = "\n\nCode,Name,ISIN,Exchange,Currency,Shares,Price\n1332,X,Y,TSE,JPY,100,200"
+        csv = (
+            "\n\nCode,Name,ISIN,Exchange,Currency,Shares,Price"
+            "\n1332,X,Y,TSE,JPY,100,200"
+        )
         with pytest.raises(ParseError):
             parse_pcf(csv)
 

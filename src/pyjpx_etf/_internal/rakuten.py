@@ -40,7 +40,6 @@ PERIOD_COLUMNS: dict[str, int] = {
 }
 
 
-
 def _fetch_rakuten_csv() -> str:
     """Fetch the Rakuten ETF CSV and return raw text."""
     resp = requests.get(_RAKUTEN_URL, timeout=config.timeout)

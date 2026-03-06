@@ -91,9 +91,7 @@ def read_etf_fee(code: str) -> float | None:
     except Exception:
         return None
     try:
-        row = conn.execute(
-            "SELECT fee FROM etfs WHERE code = ?", (code,)
-        ).fetchone()
+        row = conn.execute("SELECT fee FROM etfs WHERE code = ?", (code,)).fetchone()
         if row is None:
             return None
         return row["fee"]
@@ -199,9 +197,7 @@ def search_by_holding(
         conn.close()
 
 
-def read_history(
-    etf_code: str, holding_code: str | None = None
-) -> pd.DataFrame:
+def read_history(etf_code: str, holding_code: str | None = None) -> pd.DataFrame:
     """Return weight history for an ETF.
 
     If holding_code given: time series of that stock's weight in the ETF.
@@ -239,9 +235,7 @@ def read_history(
                 (etf_code,),
             ).fetchall()
             if not dates:
-                return pd.DataFrame(
-                    columns=["code", "name", "weight", "weight_change"]
-                )
+                return pd.DataFrame(columns=["code", "name", "weight", "weight_change"])
             earliest = dates[0]["date"]
             latest = dates[-1]["date"]
 
@@ -251,9 +245,7 @@ def read_history(
                 (etf_code, latest),
             ).fetchall()
             if not latest_rows:
-                return pd.DataFrame(
-                    columns=["code", "name", "weight", "weight_change"]
-                )
+                return pd.DataFrame(columns=["code", "name", "weight", "weight_change"])
 
             earliest_weights: dict[str, float] = {}
             if earliest != latest:

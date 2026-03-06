@@ -8,9 +8,7 @@ from ._internal.db import read_history
 from .exceptions import DatabaseError
 
 
-def history(
-    etf_code: str, holding_code: str | None = None
-) -> pd.DataFrame:
+def history(etf_code: str, holding_code: str | None = None) -> pd.DataFrame:
     """Return weight history for an ETF.
 
     Parameters
@@ -37,7 +35,5 @@ def history(
 
     _ensure_db()
     if not db_exists():
-        raise DatabaseError(
-            "Local database not found. Check your network connection."
-        )
+        raise DatabaseError("Local database not found. Check your network connection.")
     return read_history(etf_code, holding_code)

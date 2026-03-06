@@ -32,7 +32,9 @@ def _test_db(tmp_path_factory):
         date_str = info.date.isoformat()
         db.upsert_etf(conn, code, name_en=info.name)
         db.insert_pcf_info(
-            conn, code, date_str,
+            conn,
+            code,
+            date_str,
             name=info.name,
             cash_component=info.cash_component,
             shares_outstanding=info.shares_outstanding,
@@ -42,6 +44,7 @@ def _test_db(tmp_path_factory):
     # Store fees from JPX
     try:
         from pyjpx_etf._internal.fees import get_fees
+
         fees = get_fees(refresh=True)
         for code in _TEST_CODES:
             fee = fees.get(code)
@@ -53,6 +56,7 @@ def _test_db(tmp_path_factory):
     # Store Japanese names from master
     try:
         from pyjpx_etf._internal.master import get_japanese_names
+
         names = get_japanese_names(refresh=True)
         for code in _TEST_CODES:
             name_ja = names.get(code)

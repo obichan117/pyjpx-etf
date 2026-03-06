@@ -26,17 +26,18 @@ def _print_ranking(df: pd.DataFrame, period: str) -> None:
         f" {'Code':<5}  {pad('Name', name_width)}"
         f"  {period_label:>12}  {'Fee':>6}  {'Yield':>6}"
     )
-    sep = (
-        f"{'─' * 5}  {'─' * name_width}"
-        f"  {'─' * 12}  {'─' * 6}  {'─' * 6}"
-    )
+    sep = f"{'─' * 5}  {'─' * name_width}  {'─' * 12}  {'─' * 6}  {'─' * 6}"
 
     print()
     print(header)
     print(sep)
     for _, row in df.iterrows():
         fee_str = f"{row['fee']:.2f}%" if pd.notna(row["fee"]) else "   -"
-        yld_str = f"{row['dividend_yield']:.2f}%" if pd.notna(row["dividend_yield"]) else "   -"
+        yld_str = (
+            f"{row['dividend_yield']:.2f}%"
+            if pd.notna(row["dividend_yield"])
+            else "   -"
+        )
         print(
             f" {row['code']:<5}  {pad(str(row['name']), name_width)}"
             f"  {row['return']:>11.2f}%  {fee_str:>6}  {yld_str:>6}"

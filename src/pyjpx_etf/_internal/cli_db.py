@@ -124,10 +124,7 @@ def main_history(argv: list[str]) -> None:
         name_width = max(name_width, 4)
 
         print()
-        print(
-            f" {'Code':<5}  {pad('Name', name_width)}"
-            f"  {'Weight':>8}  {'Change':>8}"
-        )
+        print(f" {'Code':<5}  {pad('Name', name_width)}  {'Weight':>8}  {'Change':>8}")
         print(f"{'─' * 5}  {'─' * name_width}  {'─' * 8}  {'─' * 8}")
         for _, row in df.iterrows():
             change = row["weight_change"] * 100

@@ -27,29 +27,75 @@ def populated_db(tmp_db):
     """DB with sample data inserted."""
     conn = tmp_db
     db.upsert_etf(conn, "1306", name_ja="TOPIX連動型", name_en="TOPIX ETF", fee=0.06)
-    db.upsert_etf(conn, "2644", name_ja="半導体ETF", name_en="Semiconductor ETF", fee=0.41)
+    db.upsert_etf(
+        conn,
+        "2644",
+        name_ja="半導体ETF",
+        name_en="Semiconductor ETF",
+        fee=0.41,
+    )
     db.insert_pcf_info(
-        conn, "1306", "2026-03-01",
-        name="TOPIX ETF", cash_component=1000.0, shares_outstanding=100000,
+        conn,
+        "1306",
+        "2026-03-01",
+        name="TOPIX ETF",
+        cash_component=1000.0,
+        shares_outstanding=100000,
     )
     holdings = [
-        Holding(code="7203", name="TOYOTA", isin="JP001", exchange="TSE",
-                currency="JPY", shares=1000.0, price=2500.0, weight=0.6),
-        Holding(code="6857", name="ADVANTEST", isin="JP002", exchange="TSE",
-                currency="JPY", shares=500.0, price=5000.0, weight=0.4),
+        Holding(
+            code="7203",
+            name="TOYOTA",
+            isin="JP001",
+            exchange="TSE",
+            currency="JPY",
+            shares=1000.0,
+            price=2500.0,
+            weight=0.6,
+        ),
+        Holding(
+            code="6857",
+            name="ADVANTEST",
+            isin="JP002",
+            exchange="TSE",
+            currency="JPY",
+            shares=500.0,
+            price=5000.0,
+            weight=0.4,
+        ),
     ]
     db.insert_holdings(conn, "1306", "2026-03-01", holdings)
 
     # Second date for history
     db.insert_pcf_info(
-        conn, "1306", "2026-02-28",
-        name="TOPIX ETF", cash_component=900.0, shares_outstanding=100000,
+        conn,
+        "1306",
+        "2026-02-28",
+        name="TOPIX ETF",
+        cash_component=900.0,
+        shares_outstanding=100000,
     )
     holdings_old = [
-        Holding(code="7203", name="TOYOTA", isin="JP001", exchange="TSE",
-                currency="JPY", shares=1000.0, price=2400.0, weight=0.55),
-        Holding(code="6857", name="ADVANTEST", isin="JP002", exchange="TSE",
-                currency="JPY", shares=500.0, price=4800.0, weight=0.45),
+        Holding(
+            code="7203",
+            name="TOYOTA",
+            isin="JP001",
+            exchange="TSE",
+            currency="JPY",
+            shares=1000.0,
+            price=2400.0,
+            weight=0.55,
+        ),
+        Holding(
+            code="6857",
+            name="ADVANTEST",
+            isin="JP002",
+            exchange="TSE",
+            currency="JPY",
+            shares=500.0,
+            price=4800.0,
+            weight=0.45,
+        ),
     ]
     db.insert_holdings(conn, "1306", "2026-02-28", holdings_old)
 
@@ -92,15 +138,31 @@ class TestWriteQueries:
 
     def test_insert_pcf_info(self, tmp_db):
         conn = tmp_db
-        db.insert_pcf_info(conn, "1306", "2026-03-01", name="TOPIX",
-                           cash_component=1000.0, shares_outstanding=100)
+        db.insert_pcf_info(
+            conn,
+            "1306",
+            "2026-03-01",
+            name="TOPIX",
+            cash_component=1000.0,
+            shares_outstanding=100,
+        )
         row = conn.execute("SELECT * FROM pcf_info WHERE code='1306'").fetchone()
         assert row["name"] == "TOPIX"
 
     def test_insert_holdings(self, tmp_db):
         conn = tmp_db
-        h = [Holding(code="7203", name="TOYOTA", isin="JP001", exchange="TSE",
-                     currency="JPY", shares=100.0, price=2500.0, weight=1.0)]
+        h = [
+            Holding(
+                code="7203",
+                name="TOYOTA",
+                isin="JP001",
+                exchange="TSE",
+                currency="JPY",
+                shares=100.0,
+                price=2500.0,
+                weight=1.0,
+            )
+        ]
         db.insert_holdings(conn, "1306", "2026-03-01", h)
         row = conn.execute("SELECT * FROM pcf_holdings WHERE code='1306'").fetchone()
         assert row["holding_code"] == "7203"

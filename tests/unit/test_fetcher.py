@@ -65,9 +65,7 @@ class TestFetchPCF:
 
         result = fetch_pcf("1306")
         assert result == VALID_CSV
-        mock_get.assert_called_once_with(
-            "https://provider1/1306.csv", timeout=30
-        )
+        mock_get.assert_called_once_with("https://provider1/1306.csv", timeout=30)
 
     def test_fallback_to_second_provider(self, mock_get, mock_config):
         self._setup_config(mock_config)

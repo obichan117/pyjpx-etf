@@ -28,9 +28,7 @@ def ranking(period: str = "1m", n: int = 10) -> pd.DataFrame:
         Columns: ``code``, ``name``, ``return``, ``fee``, ``dividend_yield``.
     """
     if period not in _VALID_PERIODS:
-        raise ValueError(
-            f"period must be one of {_VALID_PERIODS}, got {period!r}"
-        )
+        raise ValueError(f"period must be one of {_VALID_PERIODS}, got {period!r}")
 
     data = get_rakuten_data()
     if not data:

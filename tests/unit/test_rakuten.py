@@ -8,7 +8,8 @@ MOCK_CSV = (
     '"1306.T","01306","TOPIX ETF","東証ETF","TOPIX","0.06","株式","日本","2500",'
     '"2.50","3.10","5.20","10.50","30.00","50.00","100.00","80.00","1.20",'
     '"円","1.95","100.00","2026/02/27","TOPIX連動型上場投資信託","desc","50000","百万円","2026/01/30","",""\n'
-    '"2644.T","02644","Global X Semiconductor JP","東証ETF","半導体","0.41","株式","日本","3000",'
+    '"2644.T","02644","Global X Semiconductor JP",'
+    '"東証ETF","半導体","0.41","株式","日本","3000",'
     '"5.10","8.20","12.30","25.00","","","","","3.50",'
     '"円","0.50","200.00","2026/02/27","半導体ETF","desc","30000","百万円","2026/01/30","",""\n'
     '"2800.HK","02800","Tracker Fund HK","香港","Hang Seng","0.07","株式","香港","332",'
@@ -146,7 +147,9 @@ class TestRakutenDiskCache:
         cache_file = tmp_path / "rakuten.json"
         cache_data = {
             "timestamp": time.time(),
-            "rakuten": {"1306": {"fee": 0.06, "name_ja": "TOPIX", "name_en": "TOPIX ETF"}},
+            "rakuten": {
+                "1306": {"fee": 0.06, "name_ja": "TOPIX", "name_en": "TOPIX ETF"},
+            },
         }
         cache_file.write_text(
             json.dumps(cache_data, ensure_ascii=False), encoding="utf-8"

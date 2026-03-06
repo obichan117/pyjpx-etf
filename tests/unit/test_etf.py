@@ -160,17 +160,23 @@ class TestETFFee:
         e = ETF("1306")
         assert e.fee == 0.06
 
-    def test_fee_returns_none_when_missing(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+    def test_fee_returns_none_when_missing(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten
+    ):
         e = ETF("9999")
         assert e.fee is None
 
-    def test_fee_cached_after_first_access(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+    def test_fee_cached_after_first_access(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten
+    ):
         e = ETF("1306")
         _ = e.fee
         _ = e.fee
         mock_fees.assert_called_once()
 
-    def test_fee_independent_of_load(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+    def test_fee_independent_of_load(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten
+    ):
         e = ETF("1306")
         _ = e.fee
         mock_fetch.assert_not_called()
@@ -187,16 +193,22 @@ class TestETFFeeFallback:
     def setup_method(self):
         config.lang = "en"
 
-    def test_jpx_fee_used_when_available(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+    def test_jpx_fee_used_when_available(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten
+    ):
         e = ETF("1306")
         assert e.fee == 0.06
         mock_rakuten.assert_not_called()
 
-    def test_rakuten_fee_used_when_jpx_missing(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+    def test_rakuten_fee_used_when_jpx_missing(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten
+    ):
         e = ETF("9999")
         assert e.fee == 0.33
 
-    def test_none_when_both_missing(self, mock_master, mock_fetch, mock_fees, mock_rakuten):
+    def test_none_when_both_missing(
+        self, mock_master, mock_fetch, mock_fees, mock_rakuten
+    ):
         e = ETF("8888")
         assert e.fee is None
 
@@ -261,10 +273,26 @@ MOCK_DB_INFO = ETFInfo(
     date=datetime.date(2026, 3, 1),
 )
 MOCK_DB_HOLDINGS = [
-    Holding(code="7203", name="TOYOTA", isin="JP001", exchange="TSE",
-            currency="JPY", shares=1000.0, price=2500.0, weight=0.6),
-    Holding(code="6857", name="ADVANTEST", isin="JP002", exchange="TSE",
-            currency="JPY", shares=500.0, price=5000.0, weight=0.4),
+    Holding(
+        code="7203",
+        name="TOYOTA",
+        isin="JP001",
+        exchange="TSE",
+        currency="JPY",
+        shares=1000.0,
+        price=2500.0,
+        weight=0.6,
+    ),
+    Holding(
+        code="6857",
+        name="ADVANTEST",
+        isin="JP002",
+        exchange="TSE",
+        currency="JPY",
+        shares=500.0,
+        price=5000.0,
+        weight=0.4,
+    ),
 ]
 
 
@@ -303,13 +331,27 @@ class TestETFLiveMode:
     def setup_method(self):
         config.lang = "en"
 
-    def test_live_bypasses_db(self, mock_names, mock_fetch, mock_info, mock_holdings, mock_exists):
+    def test_live_bypasses_db(
+        self,
+        mock_names,
+        mock_fetch,
+        mock_info,
+        mock_holdings,
+        mock_exists,
+    ):
         e = ETF("1306", live=True)
         _ = e.info
         mock_fetch.assert_called_once_with("1306")
         mock_info.assert_not_called()
 
-    def test_live_repr(self, mock_names, mock_fetch, mock_info, mock_holdings, mock_exists):
+    def test_live_repr(
+        self,
+        mock_names,
+        mock_fetch,
+        mock_info,
+        mock_holdings,
+        mock_exists,
+    ):
         e = ETF("1306", live=True)
         assert repr(e) == "ETF('1306', live=True)"
 
@@ -325,7 +367,14 @@ class TestETFDBFallback:
     def setup_method(self):
         config.lang = "en"
 
-    def test_falls_back_to_live_when_db_empty(self, mock_names, mock_fetch, mock_info, mock_holdings, mock_exists):
+    def test_falls_back_to_live_when_db_empty(
+        self,
+        mock_names,
+        mock_fetch,
+        mock_info,
+        mock_holdings,
+        mock_exists,
+    ):
         e = ETF("9999")
         _ = e.info
         mock_fetch.assert_called_once_with("9999")

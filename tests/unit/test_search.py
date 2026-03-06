@@ -1,5 +1,6 @@
 """Tests for search.py — reverse stock search."""
 
+import sys
 from unittest.mock import patch
 
 import pandas as pd
@@ -7,6 +8,8 @@ import pytest
 
 from pyjpx_etf.exceptions import DatabaseError
 from pyjpx_etf.search import search
+
+_search_mod = sys.modules["pyjpx_etf.search"]
 
 
 class TestSearch:
@@ -16,10 +19,9 @@ class TestSearch:
         with pytest.raises(DatabaseError, match="Local database not found"):
             search("7203")
 
-    @patch("pyjpx_etf.search.search_by_holding")
+    @patch.object(_search_mod, "search_by_holding")
     @patch("pyjpx_etf._internal.db_core.db_path")
     def test_delegates_to_db(self, mock_path, mock_search, tmp_path):
-        # Create a fake DB file so db_exists() returns True
         fake_db = tmp_path / "test.db"
         fake_db.write_bytes(b"fake")
         mock_path.return_value = fake_db
@@ -31,7 +33,7 @@ class TestSearch:
         assert len(df) == 1
         assert df.iloc[0]["code"] == "1306"
 
-    @patch("pyjpx_etf.search.search_by_holding")
+    @patch.object(_search_mod, "search_by_holding")
     @patch("pyjpx_etf._internal.db_core.db_path")
     def test_passes_date(self, mock_path, mock_search, tmp_path):
         fake_db = tmp_path / "test.db"
@@ -39,4 +41,8 @@ class TestSearch:
         mock_path.return_value = fake_db
         mock_search.return_value = pd.DataFrame()
         search("7203", date="2026-03-01")
-        mock_search.assert_called_once_with("7203", n=10, date="2026-03-01")
+        mock_search.assert_called_once_with(
+            "7203",
+            n=10,
+            date="2026-03-01",
+        )

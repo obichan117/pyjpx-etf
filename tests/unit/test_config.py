@@ -1,6 +1,6 @@
 import pytest
 
-from pyjpx_etf.config import Config, _ALIASES, config
+from pyjpx_etf.config import _ALIASES, Config, config
 
 
 class TestConfig:
@@ -45,8 +45,15 @@ class TestAliases:
 
     def test_all_aliases_present(self):
         expected = {
-            "topix", "225", "core30", "div50", "div70",
-            "pbr", "sox", "jpsox1", "jpsox2",
+            "topix",
+            "225",
+            "core30",
+            "div50",
+            "div70",
+            "pbr",
+            "sox",
+            "jpsox1",
+            "jpsox2",
         }
         assert expected == set(_ALIASES.keys())
 
