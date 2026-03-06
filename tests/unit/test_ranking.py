@@ -1,4 +1,4 @@
-import sys
+import importlib
 from unittest.mock import patch
 
 import pandas as pd
@@ -8,8 +8,8 @@ from pyjpx_etf import config
 from pyjpx_etf.ranking import ranking
 
 # pyjpx_etf.ranking is shadowed by the function in __init__.py.
-# Use sys.modules to get the actual module for patching.
-_ranking_mod = sys.modules["pyjpx_etf.ranking"]
+# importlib gives us the actual module for patching.
+_ranking_mod = importlib.import_module("pyjpx_etf.ranking")
 
 MOCK_RAKUTEN = {
     "1306": {

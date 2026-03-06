@@ -1,6 +1,6 @@
 """Tests for sync.py — download DB from GitHub Releases."""
 
-import sys
+import importlib
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,7 +10,8 @@ from pyjpx_etf.config import config
 from pyjpx_etf.exceptions import DatabaseError
 from pyjpx_etf.sync import sync
 
-_sync_mod = sys.modules["pyjpx_etf.sync"]
+# pyjpx_etf.sync is shadowed by the function in __init__.py.
+_sync_mod = importlib.import_module("pyjpx_etf.sync")
 
 
 @pytest.fixture(autouse=True)

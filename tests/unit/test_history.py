@@ -1,6 +1,6 @@
 """Tests for history.py — historical weight tracking."""
 
-import sys
+import importlib
 from unittest.mock import patch
 
 import pandas as pd
@@ -9,7 +9,8 @@ import pytest
 from pyjpx_etf.exceptions import DatabaseError
 from pyjpx_etf.history import history
 
-_history_mod = sys.modules["pyjpx_etf.history"]
+# pyjpx_etf.history is shadowed by the function in __init__.py.
+_history_mod = importlib.import_module("pyjpx_etf.history")
 
 
 class TestHistory:

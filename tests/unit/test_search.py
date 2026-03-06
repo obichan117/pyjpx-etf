@@ -1,6 +1,6 @@
 """Tests for search.py — reverse stock search."""
 
-import sys
+import importlib
 from unittest.mock import patch
 
 import pandas as pd
@@ -9,7 +9,8 @@ import pytest
 from pyjpx_etf.exceptions import DatabaseError
 from pyjpx_etf.search import search
 
-_search_mod = sys.modules["pyjpx_etf.search"]
+# pyjpx_etf.search is shadowed by the function in __init__.py.
+_search_mod = importlib.import_module("pyjpx_etf.search")
 
 
 class TestSearch:

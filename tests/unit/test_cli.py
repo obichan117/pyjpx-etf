@@ -1,9 +1,14 @@
+import importlib
 from unittest.mock import patch
 
 from pyjpx_etf import config
 from pyjpx_etf._internal.cli_fmt import format_yen
 from pyjpx_etf._internal.cli_show import _resolve_code
 from pyjpx_etf.cli import main
+
+# pyjpx_etf.ranking is shadowed by the function in __init__.py.
+# importlib gives us the actual module for patching.
+_ranking_mod = importlib.import_module("pyjpx_etf.ranking")
 
 MOCK_CSV = """\
 ETF Code,ETF Name,Fund Cash Component,Shares Outstanding,Fund Date
@@ -294,12 +299,17 @@ MOCK_RANKING_DATA = {
 }
 
 
-@patch("pyjpx_etf.ranking.get_rakuten_data", return_value=MOCK_RANKING_DATA)
+@patch.object(_ranking_mod, "get_fees", return_value={})
+@patch.object(
+    _ranking_mod,
+    "get_rakuten_data",
+    return_value=MOCK_RANKING_DATA,
+)
 class TestCLIRank:
     def setup_method(self):
         config.lang = "ja"
 
-    def test_rank_default(self, mock_data, capsys):
+    def test_rank_default(self, mock_data, mock_fees, capsys):
         with patch("sys.argv", ["etf", "rank"]):
             main()
         out = capsys.readouterr().out
@@ -307,32 +317,32 @@ class TestCLIRank:
         assert "2644" in out
         assert "Return (1m)" in out
 
-    def test_rank_with_count(self, mock_data, capsys):
+    def test_rank_with_count(self, mock_data, mock_fees, capsys):
         with patch("sys.argv", ["etf", "rank", "1"]):
             main()
         out = capsys.readouterr().out
         assert "2644" in out  # top 1 by 1m
 
-    def test_rank_with_period(self, mock_data, capsys):
+    def test_rank_with_period(self, mock_data, mock_fees, capsys):
         with patch("sys.argv", ["etf", "rank", "10", "1y"]):
             main()
         out = capsys.readouterr().out
         assert "Return (1y)" in out
 
-    def test_rank_negative_count(self, mock_data, capsys):
+    def test_rank_negative_count(self, mock_data, mock_fees, capsys):
         with patch("sys.argv", ["etf", "rank", "-1"]):
             main()
         out = capsys.readouterr().out
         # worst 1 by 1m = 1306 (2.50 < 5.10)
         assert "1306" in out
 
-    def test_rank_en_flag(self, mock_data, capsys):
+    def test_rank_en_flag(self, mock_data, mock_fees, capsys):
         with patch("sys.argv", ["etf", "rank", "--en"]):
             main()
         out = capsys.readouterr().out
         assert "TOPIX ETF" in out
 
-    def test_rank_japanese_names_default(self, mock_data, capsys):
+    def test_rank_japanese_names_default(self, mock_data, mock_fees, capsys):
         with patch("sys.argv", ["etf", "rank"]):
             main()
         out = capsys.readouterr().out
