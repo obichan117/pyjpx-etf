@@ -179,8 +179,10 @@ main (protected — requires PR + CI pass)
 2. make changes, commit
 3. git push → create PR → CI runs automatically
 4. merge to main after CI passes
-5. create GitHub Release → CI runs again → publishes to PyPI
+5. if version in pyproject.toml is new → auto-publishes to PyPI + creates GitHub Release
 ```
+
+To publish a new version: bump version in `pyproject.toml` + `src/pyjpx_etf/__init__.py`, then merge to main.
 
 ### CI Pipeline (`.github/workflows/ci.yml`)
 
@@ -195,7 +197,7 @@ Triggers: push to `main`, PRs to `main`, called by publish workflow.
 
 ### Publish Pipeline (`.github/workflows/publish.yml`)
 
-Triggers: GitHub Release published. Runs full CI first, then builds and publishes to PyPI via trusted publishing.
+Triggers: push to `main`. Runs CI first, checks if version in `pyproject.toml` is new on PyPI. If new version detected → builds, publishes to PyPI (trusted publishing), and auto-creates a GitHub Release.
 
 ### Daily PCF Pipeline (`.github/workflows/daily-pcf.yml`)
 
