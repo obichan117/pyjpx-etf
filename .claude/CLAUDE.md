@@ -162,3 +162,57 @@ etf history <etf_code> [stock] [--en]  Weight history
 - `lxml>=5.0` — required by `pd.read_html` for JPX ETF fee page
 - `sqlite3` — stdlib, no extra dependency
 - No Pydantic, no async
+
+## Git Branching & CI/CD
+
+### Branching Strategy
+
+```
+main (protected — requires PR + CI pass)
+  └── feature/xxx, fix/xxx, docs/xxx (short-lived branches)
+```
+
+### Workflow
+
+```
+1. git checkout -b feature/xxx
+2. make changes, commit
+3. git push → create PR → CI runs automatically
+4. merge to main after CI passes
+5. create GitHub Release → CI runs again → publishes to PyPI
+```
+
+### CI Pipeline (`.github/workflows/ci.yml`)
+
+Triggers: push to `main`, PRs to `main`, called by publish workflow.
+
+| Job | What |
+|-----|------|
+| `lint` | `ruff check` + `ruff format --check` |
+| `test` | Unit tests on Python 3.10, 3.11, 3.12, 3.13 |
+| `integration` | Integration tests (needs: test) — hits live endpoints |
+| `docs` | `mkdocs build --strict` |
+
+### Publish Pipeline (`.github/workflows/publish.yml`)
+
+Triggers: GitHub Release published. Runs full CI first, then builds and publishes to PyPI via trusted publishing.
+
+### Daily PCF Pipeline (`.github/workflows/daily-pcf.yml`)
+
+Triggers: cron 07:55 JST Mon-Fri + manual `workflow_dispatch`. Downloads previous DB, runs pipeline to fetch ~400 ETFs, uploads updated `pcf.db` to `db-latest` release.
+
+### Running Tests Locally
+
+```bash
+# Unit tests only (fast, no network)
+uv run pytest tests/unit/ -v
+
+# Integration tests (hits live endpoints)
+uv run pytest tests/integration/ --integration -v
+
+# All tests
+uv run pytest tests/ --integration -v
+
+# Full pre-push check
+uv run ruff check && uv run ruff format --check && uv run pytest tests/ --integration -v && uv run mkdocs build --strict
+```
