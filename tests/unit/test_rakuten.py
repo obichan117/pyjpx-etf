@@ -27,7 +27,7 @@ def _mock_get_ok(text=MOCK_CSV):
 def _reset(tmp_path, monkeypatch):
     """Reset memory cache and redirect disk cache to tmp_path."""
     rakuten._reset_cache()
-    monkeypatch.setattr(rakuten, "_CACHE_FILE", tmp_path / "rakuten.json")
+    monkeypatch.setattr(rakuten._cache, "_disk_path", tmp_path / "rakuten.json")
 
 
 class TestNormalizeCode:
@@ -158,7 +158,7 @@ class TestRakutenDiskCache:
     def test_expired_disk_cache_triggers_fetch(self, mock_get, tmp_path, monkeypatch):
         _reset(tmp_path, monkeypatch)
         cache_file = tmp_path / "rakuten.json"
-        old_ts = time.time() - rakuten._CACHE_TTL - 1
+        old_ts = time.time() - rakuten._cache._ttl - 1
         cache_data = {
             "timestamp": old_ts,
             "rakuten": {"1306": {"fee": 99.0}},
@@ -173,7 +173,7 @@ class TestRakutenDiskCache:
     @patch("pyjpx_etf._internal.rakuten.requests.get", return_value=_mock_get_ok())
     def test_refresh_bypasses_all_caches(self, mock_get, tmp_path, monkeypatch):
         _reset(tmp_path, monkeypatch)
-        rakuten._memory_cache = {"1306": {"fee": 99.0}}
+        rakuten._cache._memory = {"1306": {"fee": 99.0}}
         result = rakuten.get_rakuten_data(refresh=True)
         assert result["1306"]["fee"] == 0.06
         mock_get.assert_called_once()

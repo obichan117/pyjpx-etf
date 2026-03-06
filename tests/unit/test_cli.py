@@ -1,7 +1,9 @@
 from unittest.mock import patch
 
 from pyjpx_etf import config
-from pyjpx_etf.cli import _format_yen, _resolve_code, main
+from pyjpx_etf._internal.cli_fmt import format_yen
+from pyjpx_etf._internal.cli_show import _resolve_code
+from pyjpx_etf.cli import main
 
 MOCK_CSV = """\
 ETF Code,ETF Name,Fund Cash Component,Shares Outstanding,Fund Date
@@ -21,22 +23,22 @@ MOCK_JAPANESE_NAMES = {
 
 class TestFormatYen:
     def test_cho(self):
-        assert _format_yen(1_3000_0000_0000) == "1.3兆"
+        assert format_yen(1_3000_0000_0000) == "1.3兆"
 
     def test_cho_integer(self):
-        assert _format_yen(2_0000_0000_0000) == "2兆"
+        assert format_yen(2_0000_0000_0000) == "2兆"
 
     def test_large_oku(self):
-        assert _format_yen(1300_0000_0000) == "1300億"
+        assert format_yen(1300_0000_0000) == "1300億"
 
     def test_medium_oku(self):
-        assert _format_yen(52_0000_0000) == "52億"
+        assert format_yen(52_0000_0000) == "52億"
 
     def test_small_oku(self):
-        assert _format_yen(1500_0000) == "0.15億"
+        assert format_yen(1500_0000) == "0.15億"
 
     def test_one_oku(self):
-        assert _format_yen(1_0000_0000) == "1億"
+        assert format_yen(1_0000_0000) == "1億"
 
 
 class TestResolveCode:
@@ -307,3 +309,32 @@ class TestCLIRank:
             main()
         out = capsys.readouterr().out
         assert "TOPIX連動型上場投資信託" in out
+
+
+@patch("pyjpx_etf.etf.get_rakuten_data", return_value={})
+@patch("pyjpx_etf.etf.get_fees", return_value={})
+@patch("pyjpx_etf.etf.fetch_pcf", return_value=MOCK_CSV)
+@patch("pyjpx_etf.etf.get_japanese_names", return_value={})
+@patch("pyjpx_etf.etf.db.db_exists", return_value=False)
+class TestCLILiveFlag:
+    def setup_method(self):
+        config.lang = "en"
+
+    def test_live_flag(self, mock_db_exists, mock_master, mock_fetch, mock_fees, mock_rakuten, capsys):
+        with patch("sys.argv", ["etf", "1306", "--live"]):
+            main()
+        out = capsys.readouterr().out
+        assert "1306" in out
+        assert "TOPIX ETF" in out
+        mock_fetch.assert_called_once_with("1306")
+
+
+class TestCLIHelp:
+    def test_help_includes_new_commands(self, capsys):
+        with patch("sys.argv", ["etf", "--help"]):
+            main()
+        out = capsys.readouterr().out
+        assert "sync" in out
+        assert "find" in out
+        assert "history" in out
+        assert "--live" in out

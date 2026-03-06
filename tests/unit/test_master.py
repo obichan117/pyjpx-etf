@@ -24,7 +24,7 @@ def _mock_get_ok():
 def _reset(tmp_path, monkeypatch):
     """Reset memory cache and redirect disk cache to tmp_path."""
     master._reset_cache()
-    monkeypatch.setattr(master, "_CACHE_FILE", tmp_path / "master.json")
+    monkeypatch.setattr(master._cache, "_disk_path", tmp_path / "master.json")
 
 
 class TestGetJapaneseNames:
@@ -98,7 +98,7 @@ class TestDiskCache:
     ):
         _reset(tmp_path, monkeypatch)
         cache_file = tmp_path / "master.json"
-        old_ts = time.time() - master._CACHE_TTL - 1
+        old_ts = time.time() - master._cache._ttl - 1
         cache_file.write_text(
             json.dumps(
                 {"timestamp": old_ts, "names": {"1306": "stale_name"}},
@@ -118,7 +118,7 @@ class TestDiskCache:
     ):
         _reset(tmp_path, monkeypatch)
         # Seed memory cache (direct access needed to test refresh bypass)
-        master._memory_cache = {"1306": "old_memory"}
+        master._cache._memory = {"1306": "old_memory"}
         # Seed fresh disk cache
         cache_file = tmp_path / "master.json"
         cache_file.write_text(

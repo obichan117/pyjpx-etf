@@ -8,7 +8,7 @@ class TestConfig:
         c = Config()
         assert c.timeout == 30
         assert c.request_delay == 0.0
-        assert len(c.provider_urls) == 2
+        assert len(c.provider_urls) == 3
         assert c.lang == "ja"
 
     def test_mutation(self):

@@ -53,6 +53,29 @@ class TestParseValidCSV:
         assert abs(holdings[1].weight - mv1 / total) < 1e-9
 
 
+class TestParseNoBlankLine:
+    """CSV with no blank line between info and holdings sections."""
+
+    NO_BLANK_LINE_CSV = """\
+ETF Code,ETF Name,Fund Cash Component,Shares Outstanding,Fund Date
+1306,TOPIX ETF,496973797639.0,8133974978,20260227
+Code,Name,ISIN,Exchange,Currency,Shares Amount,Stock Price
+1332,NISSUI CORPORATION,JP3718800000,TSE,JPY,7647000.0,1506.5
+7203,TOYOTA MOTOR,JP3633400001,TSE,JPY,3000000.0,2500.0
+"""
+
+    def test_parses_without_blank_line(self):
+        info, holdings = parse_pcf(self.NO_BLANK_LINE_CSV)
+        assert info.code == "1306"
+        assert len(holdings) == 2
+
+    def test_crlf_without_blank_line(self):
+        csv = self.NO_BLANK_LINE_CSV.replace("\n", "\r\n")
+        info, holdings = parse_pcf(csv)
+        assert info.code == "1306"
+        assert len(holdings) == 2
+
+
 class TestParseMalformedCSV:
     def test_missing_sections(self):
         with pytest.raises(ParseError, match="two sections"):

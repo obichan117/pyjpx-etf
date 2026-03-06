@@ -1,4 +1,29 @@
+from unittest.mock import patch
+
 import pytest
+
+from pyjpx_etf.config import config as _config
+
+
+@pytest.fixture(autouse=True)
+def _isolate_db(request, tmp_path):
+    """Prevent unit tests from reading real DB and auto-sync.
+
+    Skipped for integration tests which need real DB access.
+    """
+    if "integration" in request.keywords:
+        yield
+        return
+
+    import pyjpx_etf.etf as _etf_mod
+
+    original = _config.db_path
+    _config.db_path = tmp_path / "no-such.db"
+    _etf_mod._db_checked = False
+    with patch.object(_etf_mod, "_ensure_db"):
+        yield
+    _config.db_path = original
+    _etf_mod._db_checked = False
 
 
 def pytest_addoption(parser):
