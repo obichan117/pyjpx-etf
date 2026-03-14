@@ -14,7 +14,3 @@ build/
 
 # MkDocs build output
 site/
-
-# Personal scripts
-examples/screener.py
-src/pyjpx_etf/_internal/cli_screen.py

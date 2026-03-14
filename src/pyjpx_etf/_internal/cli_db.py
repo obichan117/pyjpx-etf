@@ -7,7 +7,23 @@ import sys
 from ..config import config
 from ..exceptions import PyJPXETFError
 from .cli_fmt import display_width, pad
-from .db_core import db_path, get_connection
+from .db_core import get_connection
+
+
+def _lookup_name(table: str, code: str, en: bool) -> str:
+    """Look up a name from etfs or securities table."""
+    lang_col = "name_en" if en else "name_ja"
+    try:
+        conn = get_connection()
+        row = conn.execute(
+            f"SELECT {lang_col} FROM {table} WHERE code = ?", (code,)
+        ).fetchone()
+        conn.close()
+        if row and row[0]:
+            return row[0]
+    except Exception:
+        pass
+    return ""
 
 
 def main_sync(argv: list[str]) -> None:
@@ -61,27 +77,17 @@ def main_search(argv: list[str]) -> None:
         print(f"No ETFs found holding stock {stock_code}.")
         return
 
-    # Look up stock name from securities table
-    stock_name = None
-    try:
-        conn = get_connection()
-        lang_col = "name_en" if en else "name_ja"
-        row = conn.execute(
-            f"SELECT {lang_col} FROM securities WHERE code = ?", (stock_code,)
-        ).fetchone()
-        if row and row[0]:
-            stock_name = row[0]
-        conn.close()
-    except Exception:
-        pass
+    stock_name = _lookup_name("securities", stock_code, en)
 
     name_width = max(display_width(str(n)) for n in df["name"])
     name_width = max(name_width, 4)
 
     print()
+    header = stock_code
     if stock_name:
-        print(f"  {stock_code} {stock_name}")
-        print()
+        header += f" {stock_name}"
+    print(f"  {header}")
+    print()
     print(f" {'Code':<5}  {pad('Name', name_width)}  {'Weight':>8}  {'Shares':>12}")
     print(f"{'─' * 5}  {'─' * name_width}  {'─' * 8}  {'─' * 12}")
     for _, row in df.iterrows():
@@ -125,8 +131,20 @@ def main_history(argv: list[str]) -> None:
         print("No history data available.")
         return
 
+    etf_name = _lookup_name("etfs", etf_code, en)
+    header = etf_code
+    if etf_name:
+        header += f" {etf_name}"
+    if stock_code is not None:
+        stock_name = _lookup_name("securities", stock_code, en)
+        header += f" — {stock_code}"
+        if stock_name:
+            header += f" {stock_name}"
+
     if stock_code is not None:
         # Time series view
+        print()
+        print(f"  {header}")
         print()
         print(f" {'Date':<12}  {'Weight':>8}  {'Shares':>12}  {'Price':>10}")
         print(f"{'─' * 12}  {'─' * 8}  {'─' * 12}  {'─' * 10}")
@@ -141,6 +159,8 @@ def main_history(argv: list[str]) -> None:
         name_width = max(display_width(str(n)) for n in df["name"])
         name_width = max(name_width, 4)
 
+        print()
+        print(f"  {header}")
         print()
         print(f" {'Code':<5}  {pad('Name', name_width)}  {'Weight':>8}  {'Change':>8}")
         print(f"{'─' * 5}  {'─' * name_width}  {'─' * 8}  {'─' * 8}")

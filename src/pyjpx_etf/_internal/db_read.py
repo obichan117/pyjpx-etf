@@ -240,8 +240,12 @@ def read_history(etf_code: str, holding_code: str | None = None) -> pd.DataFrame
             latest = dates[-1]["date"]
 
             latest_rows = conn.execute(
-                "SELECT holding_code, name, weight FROM pcf_holdings "
-                "WHERE code = ? AND date = ? ORDER BY weight DESC LIMIT 20",
+                "SELECT h.holding_code, h.name, h.weight, "
+                "s.name_ja, s.name_en "
+                "FROM pcf_holdings h "
+                "LEFT JOIN securities s ON h.holding_code = s.code "
+                "WHERE h.code = ? AND h.date = ? "
+                "ORDER BY h.weight DESC LIMIT 20",
                 (etf_code, latest),
             ).fetchall()
             if not latest_rows:
@@ -256,11 +260,14 @@ def read_history(etf_code: str, holding_code: str | None = None) -> pd.DataFrame
                 ).fetchall():
                     earliest_weights[r["holding_code"]] = r["weight"]
 
+            from ..config import config
+
+            name_key = "name_ja" if config.lang == "ja" else "name_en"
             return pd.DataFrame(
                 [
                     {
                         "code": r["holding_code"],
-                        "name": r["name"] or "",
+                        "name": r[name_key] or r["name"] or "",
                         "weight": r["weight"],
                         "weight_change": (
                             r["weight"] - earliest_weights.get(r["holding_code"], 0.0)
