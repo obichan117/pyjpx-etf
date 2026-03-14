@@ -156,9 +156,12 @@ def _get_etf_codes(db_path: Path) -> list[str]:
 
 
 def _get_etf_names(db_path: Path) -> dict[str, str]:
+    from ..config import config
+
+    name_col = "name_ja" if config.lang == "ja" else "name_en"
     conn = sqlite3.connect(db_path)
     try:
-        rows = conn.execute("SELECT code, name_ja FROM etfs").fetchall()
+        rows = conn.execute(f"SELECT code, {name_col} FROM etfs").fetchall()
         return {r[0]: r[1] or "" for r in rows}
     finally:
         conn.close()
@@ -412,14 +415,24 @@ def _fmt(val: float | None, width: int, decimals: int = 2, suffix: str = "") -> 
 
 
 def _fmt_yen(val: float | None, width: int) -> str:
+    from ..config import config
+
     if val is None:
         return f"{'-':>{width}}"
-    if val >= 1e12:
-        return f"{val / 1e12:>{width - 1}.1f}T"
-    if val >= 1e8:
-        return f"{val / 1e8:>{width - 1}.0f}億"
-    if val >= 1e4:
-        return f"{val / 1e4:>{width - 1}.0f}万"
+    if config.lang == "ja":
+        if abs(val) >= 1e12:
+            return f"{val / 1e12:>{width - 1}.1f}兆"
+        if abs(val) >= 1e8:
+            return f"{val / 1e8:>{width - 1}.0f}億"
+        if abs(val) >= 1e4:
+            return f"{val / 1e4:>{width - 1}.0f}万"
+    else:
+        if abs(val) >= 1e12:
+            return f"{val / 1e12:>{width - 1}.1f}T"
+        if abs(val) >= 1e9:
+            return f"{val / 1e9:>{width - 1}.1f}B"
+        if abs(val) >= 1e6:
+            return f"{val / 1e6:>{width - 1}.0f}M"
     return f"{val:>{width},.0f}"
 
 
@@ -545,7 +558,7 @@ def _display(df: pd.DataFrame, sort_by: str) -> None:
 
 def _print_help() -> None:
     print("""\
-Usage: etf screen [--by STAT] [--days N] [--top N] [--refresh] [--db PATH]
+Usage: etf screen [--by STAT] [--days N] [--top N] [--en] [--refresh] [--db PATH]
 
 Screen all ETFs by trading activity, volatility, fund size, or fees.
 
@@ -553,6 +566,7 @@ Options:
   --by STAT    Stat to sort by (default: range_pct)
   --days N     OHLCV lookback period in days (default: 30)
   --top N      Number of results (default: 20)
+  --en         English names
   --refresh    Force re-fetch (ignore today's cache)
   --db PATH    Path to pcf.db
 
@@ -609,6 +623,10 @@ def main_screen(argv: list[str]) -> None:
         elif arg == "--top" and i + 1 < len(argv):
             i += 1
             top = int(argv[i])
+        elif arg == "--en":
+            from ..config import config
+
+            config.lang = "en"
         elif arg == "--refresh":
             refresh = True
         elif arg == "--db" and i + 1 < len(argv):

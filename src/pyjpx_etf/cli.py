@@ -17,7 +17,7 @@ Usage:
   etf sync [--force]                     Download/update PCF database
   etf find <stock_code> [n] [--en]       Find ETFs holding a stock
   etf history <etf_code> [stock] [--en]  Weight history
-  etf screen [--by STAT] [--top N]             ETF screener (requires extras)
+  etf screen [--by STAT] [--top N] [--en]       ETF screener (requires extras)
   etf --version                          Show version
   etf --help                             Show this help
 
