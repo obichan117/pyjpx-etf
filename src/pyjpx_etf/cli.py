@@ -17,6 +17,7 @@ Usage:
   etf sync [--force]                     Download/update PCF database
   etf find <stock_code> [n] [--en]       Find ETFs holding a stock
   etf history <etf_code> [stock] [--en]  Weight history
+  etf screen [--by STAT] [--days N] [--top N]  Volatility screener
   etf --version                          Show version
   etf --help                             Show this help
 
@@ -53,7 +54,18 @@ def main() -> None:
     from ._internal.cli_rank import main_rank
     from ._internal.cli_show import main_etf
 
-    if argv[0] == "rank":
+    if argv[0] == "screen":
+        try:
+            from ._internal.cli_screen import main_screen
+        except ImportError:
+            print(
+                "Error: screen requires extra dependencies.\n"
+                "Install with: pip install 'pyjpx-etf[screen]'",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        main_screen(argv[1:])
+    elif argv[0] == "rank":
         main_rank(argv[1:])
     elif argv[0] == "sync":
         main_sync(argv[1:])

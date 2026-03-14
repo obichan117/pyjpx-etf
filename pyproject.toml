@@ -25,6 +25,12 @@ dependencies = [
     "lxml>=5.0",  # required by pd.read_html for JPX ETF fee page
 ]
 
+[project.optional-dependencies]
+screen = [
+    "pyjquants>=0.3.0",
+    "pykabutan>=0.1.1",
+]
+
 [project.urls]
 Homepage = "https://github.com/obichan117/pyjpx-etf"
 Documentation = "https://obichan117.github.io/pyjpx-etf"

@@ -7,6 +7,7 @@ import sys
 from ..config import config
 from ..exceptions import PyJPXETFError
 from .cli_fmt import display_width, pad
+from .db_core import db_path, get_connection
 
 
 def main_sync(argv: list[str]) -> None:
@@ -60,10 +61,27 @@ def main_search(argv: list[str]) -> None:
         print(f"No ETFs found holding stock {stock_code}.")
         return
 
+    # Look up stock name from securities table
+    stock_name = None
+    try:
+        conn = get_connection()
+        lang_col = "name_en" if en else "name_ja"
+        row = conn.execute(
+            f"SELECT {lang_col} FROM securities WHERE code = ?", (stock_code,)
+        ).fetchone()
+        if row and row[0]:
+            stock_name = row[0]
+        conn.close()
+    except Exception:
+        pass
+
     name_width = max(display_width(str(n)) for n in df["name"])
     name_width = max(name_width, 4)
 
     print()
+    if stock_name:
+        print(f"  {stock_code} {stock_name}")
+        print()
     print(f" {'Code':<5}  {pad('Name', name_width)}  {'Weight':>8}  {'Shares':>12}")
     print(f"{'─' * 5}  {'─' * name_width}  {'─' * 8}  {'─' * 12}")
     for _, row in df.iterrows():
