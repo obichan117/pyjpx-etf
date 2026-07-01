@@ -18,7 +18,7 @@ Install: pip install 'pyjpx-etf[screen]'
 
 from __future__ import annotations
 
-import importlib
+import importlib.util
 
 _missing = [
     pkg for pkg in ("pyjquants", "pykabutan") if importlib.util.find_spec(pkg) is None
@@ -57,6 +57,7 @@ except ModuleNotFoundError:
 import pandas as pd  # noqa: E402
 
 from .cli_fmt import display_width, pad  # noqa: E402
+from .db_core import db_path as _get_default_db_path  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Config
@@ -603,7 +604,7 @@ def main_screen(argv: list[str]) -> None:
     days = DEFAULT_DAYS
     top = DEFAULT_TOP
     refresh = False
-    db_path = Path.home() / ".cache" / "pyjpx-etf" / "pcf.db"
+    db_path = _get_default_db_path()
 
     i = 0
     while i < len(argv):
