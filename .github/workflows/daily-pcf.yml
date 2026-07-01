@@ -10,13 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
 
       # Reset GitHub's 60-day inactivity timer so this scheduled workflow
-      # is never auto-disabled (disabled_inactivity) again.
+      # is never auto-disabled (disabled_inactivity) again. Calling the
+      # enable endpoint on each run keeps it alive without third-party
+      # actions (gautamkrishnar/keepalive-workflow is ToS-blocked).
       - name: Keep workflow alive
-        uses: gautamkrishnar/keepalive-workflow@v2
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/daily-pcf.yml/enable"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - uses: astral-sh/setup-uv@v5
 
