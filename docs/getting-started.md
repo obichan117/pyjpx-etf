@@ -6,6 +6,13 @@
 pip install pyjpx-etf
 ```
 
+!!! tip "Optional: ETF Screener"
+    The `etf screen` command needs extra dependencies. Install with:
+    ```bash
+    pip install 'pyjpx-etf[screen]'
+    ```
+    See the [ETF Screener guide](guide/screen.md) for details.
+
 ## Setup: Sync the Database
 
 pyjpx-etf works best with a local database. Download it once:

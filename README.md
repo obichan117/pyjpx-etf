@@ -119,6 +119,20 @@ $ etf sync                 # download/update
 $ etf sync --force         # force re-download
 ```
 
+### ETF Screener
+
+Screen all ETFs by trading activity, volatility, fund size, or fees. Requires the optional `screen` extra:
+
+```bash
+pip install 'pyjpx-etf[screen]'
+```
+
+```
+$ etf screen                    # top 20 by range_pct
+$ etf screen --by vol_ratio     # volume surges
+$ etf screen --by aum --top 10  # top 10 by fund size
+```
+
 ### Aliases
 
 | Alias | Code | ETF |

@@ -147,6 +147,31 @@ $ etf history 1306
  8306   三菱UFJ...           2.50%   -0.05%
 ```
 
+## ETF Screener
+
+```
+etf screen [--by STAT] [--days N] [--top N] [--en] [--refresh] [--db PATH]
+```
+
+Screen all ETFs in the local DB by trading activity, volatility, fund size, or fees. Requires the optional `screen` extra (`pip install 'pyjpx-etf[screen]'`).
+
+| Flag | Description |
+|------|-------------|
+| `--by STAT` | Stat to sort by (default: `range_pct`) |
+| `--days N` | OHLCV lookback period in days (default: `30`) |
+| `--top N` | Number of results (default: `20`) |
+| `--en` | English names |
+| `--refresh` | Force re-fetch, ignoring today's cache |
+| `--db PATH` | Path to `pcf.db` |
+
+```
+$ etf screen                    # top 20 by range_pct
+$ etf screen --by vol_ratio     # volume surges
+$ etf screen --by aum --top 10  # top 10 by fund size
+```
+
+See the [ETF Screener guide](screen.md) for the full list of stats, install steps, and requirements.
+
 ## Version and Help
 
 ```

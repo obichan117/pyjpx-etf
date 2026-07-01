@@ -45,6 +45,7 @@ nav:
       - Stock Search: guide/search.md
       - Weight History: guide/history.md
       - CLI Reference: guide/cli.md
+      - ETF Screener: guide/screen.md
   - API Reference:
       - ETF: api/etf.md
       - ranking: api/ranking.md
