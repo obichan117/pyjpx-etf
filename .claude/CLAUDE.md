@@ -58,8 +58,33 @@ src/pyjpx_etf/
     ├── cli_fmt.py     # Shared terminal formatting (display_width, pad, format_yen)
     ├── cli_show.py    # CLI handler: etf <code>
     ├── cli_rank.py    # CLI handler: etf rank
-    └── cli_db.py      # CLI handlers: etf sync, search, history
+    ├── cli_db.py      # CLI handlers: etf sync, search, history
+    └── cli_screen.py  # CLI handler: etf screen — ETF screener (requires [screen] extras)
+                       #   ⚠ 673-line god file; target: split into _internal/screen/ (see below)
 ```
+
+### Target Architecture: screen/ subpackage (decided 2026-07-02 audit)
+
+`cli_screen.py` will be split into a subpackage mirroring the fetch/parse split:
+
+```
+_internal/screen/
+├── __init__.py    # main_screen() entry + LAZY extras-guard (fires only when OHLCV needed)
+├── ohlcv.py       # I/O: J-Quants + Kabutan threaded fetch + 1-day disk cache
+├── signals.py     # Pure: _compute_signals, _screen — pandas only, no I/O
+└── display.py     # Table rendering, column profiles, _fmt/_fmt_yen, help text
+```
+
+Key decisions from the audit:
+- **screen is kept** — its purpose is filtering ETFs with unusual volatility (tracking
+  errors) for potential arbitrage (`--by range_ratio`, `--by vol_ratio`).
+- **Lazy extras-guard**: the current module-level ImportError (raised when
+  pyjquants/pykabutan missing) broke CI test collection and blocks DB-only stats
+  (`--by aum|fee`) needlessly. Guard moves inside `main_screen()`, only for OHLCV stats.
+- **db_path bug**: cli_screen hardcodes `~/.cache/pyjpx-etf/pcf.db` instead of using
+  `db.db_path()` (ignores `config.db_path`) — must be fixed.
+- **Future signal**: iNAV premium/discount from PCF data (true mispricing detector for
+  arbitrage) — would live in `screen/premium.py`. Not yet implemented.
 
 ### Key Design Patterns
 
@@ -152,7 +177,14 @@ etf rank [n] [period] [--en]           Rank ETFs by return
 etf sync [--force]                     Download/update PCF database
 etf find <stock_code> [n] [--en]       Find ETFs holding a stock
 etf history <etf_code> [stock] [--en]  Weight history
+etf screen [--by STAT] [--days N] [--top N] [--en] [--refresh] [--db PATH]
+                                       ETF screener (requires [screen] extras + JQUANTS_API_KEY)
 ```
+
+`etf screen` stats: `turnover`, `turnover_ratio`, `range_pct` (default), `atr`,
+`range_ratio` (>2 = unusual volatility), `vol_ratio` (>2 = volume surge), `return_pct`
+(all need OHLCV fetch); `aum`, `fee` (local DB only). OHLCV cached 1 day at
+`~/.cache/pyjpx-etf/ohlcv/`.
 
 ## Dependencies
 
@@ -162,6 +194,12 @@ etf history <etf_code> [stock] [--en]  Weight history
 - `lxml>=5.0` — required by `pd.read_html` for JPX ETF fee page
 - `sqlite3` — stdlib, no extra dependency
 - No Pydantic, no async
+
+### Optional extras (`pip install 'pyjpx-etf[screen]'`)
+
+- `pyjquants>=0.3.0` — J-Quants OHLCV data (needs `JQUANTS_API_KEY` in env or `~/.env`)
+- `pykabutan>=0.1.1` — Kabutan scraping fallback for J-Quants gaps
+- CI must run `uv sync --all-extras` so `tests/unit/test_cli_screen.py` can import
 
 ## Git Branching & CI/CD
 
@@ -202,6 +240,21 @@ Triggers: push to `main`. Runs CI first, checks if version in `pyproject.toml` i
 ### Daily PCF Pipeline (`.github/workflows/daily-pcf.yml`)
 
 Triggers: cron 07:55 JST Mon-Fri + manual `workflow_dispatch`. Downloads previous DB, runs pipeline to fetch ~400 ETFs, uploads updated `pcf.db` to `db-latest` release.
+
+⚠ **GitHub auto-disables scheduled workflows after 60 days without repo activity**
+(`disabled_inactivity`). This killed the cron 2026-05-13 → 2026-07-02, leaving a
+permanent ~7-week gap in the append-only PCF history (no backfill source exists).
+The fix (`gautamkrishnar/keepalive-workflow` step) lives on `fix/daily-pcf-keepalive`
+and must stay in the workflow.
+
+### Incident log (2026-07-02 audit)
+
+- **v0.6.0 publish failed (2026-03-14)**: `test_cli_screen.py` imports `cli_screen`,
+  which raises ImportError without the `[screen]` extras — CI runs plain `uv sync`,
+  so collection failed on all Python versions; plus one ruff import-sort error.
+  PyPI stayed at 0.5.0 while main was 0.6.0. Screen has therefore **never shipped**.
+  Lesson: any test importing an extras-gated module needs CI extras install and/or
+  `pytest.importorskip`.
 
 ### Running Tests Locally
 

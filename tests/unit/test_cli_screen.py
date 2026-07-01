@@ -3,21 +3,25 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
-from pyjpx_etf._internal.cli_screen import (
+pytest.importorskip("pyjquants")
+pytest.importorskip("pykabutan")
+
+from pyjpx_etf._internal.cli_screen import (  # noqa: E402
+    ROLLING_WINDOW,
     _compute_signals,
     _fmt,
     _fmt_yen,
     _safe_round,
     _screen,
     _truncate_name,
-    ROLLING_WINDOW,
 )
-
 
 # ---------------------------------------------------------------------------
 # Mock OHLCV data — 25 rows so rolling(20) produces values
 # ---------------------------------------------------------------------------
+
 
 def _make_ohlcv(
     base_close: float = 1000.0,
@@ -28,14 +32,16 @@ def _make_ohlcv(
     data = []
     for i in range(rows):
         close = base_close + i * 10
-        data.append({
-            "date": f"2026-01-{i + 1:02d}",
-            "open": close - 5,
-            "high": close + 20,
-            "low": close - 10,
-            "close": close,
-            "volume": base_volume + i * 100,
-        })
+        data.append(
+            {
+                "date": f"2026-01-{i + 1:02d}",
+                "open": close - 5,
+                "high": close + 20,
+                "low": close - 10,
+                "close": close,
+                "volume": base_volume + i * 100,
+            }
+        )
     return pd.DataFrame(data)
 
 
@@ -63,8 +69,15 @@ class TestComputeSignals:
     def test_adds_expected_columns(self):
         df = _make_ohlcv()
         result = _compute_signals(df)
-        for col in ("range_pct", "atr", "range_ratio", "vol_ratio",
-                     "return_pct", "turnover", "turnover_ratio"):
+        for col in (
+            "range_pct",
+            "atr",
+            "range_ratio",
+            "vol_ratio",
+            "return_pct",
+            "turnover",
+            "turnover_ratio",
+        ):
             assert col in result.columns
 
     def test_range_pct_calculation(self):
@@ -106,8 +119,9 @@ class TestScreen:
             "1306": _make_ohlcv(base_close=1000),
             "2644": _make_ohlcv(base_close=500),
         }
-        result = _screen(ohlcv, MOCK_NAMES, MOCK_FEES, MOCK_AUM,
-                         sort_by="range_pct", top=10)
+        result = _screen(
+            ohlcv, MOCK_NAMES, MOCK_FEES, MOCK_AUM, sort_by="range_pct", top=10
+        )
         assert not result.empty
         # Should be sorted descending
         vals = result["range_pct"].tolist()
@@ -119,33 +133,34 @@ class TestScreen:
             "2644": _make_ohlcv(base_close=500),
             "9999": _make_spike_ohlcv(),
         }
-        result = _screen(ohlcv, MOCK_NAMES, MOCK_FEES, MOCK_AUM,
-                         sort_by="range_pct", top=2)
+        result = _screen(
+            ohlcv, MOCK_NAMES, MOCK_FEES, MOCK_AUM, sort_by="range_pct", top=2
+        )
         assert len(result) == 2
 
     def test_skips_short_series(self):
         ohlcv = {"1306": _make_ohlcv(rows=5)}  # too few rows
-        result = _screen(ohlcv, MOCK_NAMES, MOCK_FEES, MOCK_AUM,
-                         sort_by="range_pct", top=10)
+        result = _screen(
+            ohlcv, MOCK_NAMES, MOCK_FEES, MOCK_AUM, sort_by="range_pct", top=10
+        )
         assert result.empty
 
     def test_includes_aum_and_fee(self):
         ohlcv = {"1306": _make_ohlcv()}
-        result = _screen(ohlcv, MOCK_NAMES, MOCK_FEES, MOCK_AUM,
-                         sort_by="range_pct", top=10)
+        result = _screen(
+            ohlcv, MOCK_NAMES, MOCK_FEES, MOCK_AUM, sort_by="range_pct", top=10
+        )
         assert result.iloc[0]["aum"] == 31.2e12
         assert result.iloc[0]["fee"] == 0.06
 
     def test_db_only_stat_aum(self):
-        result = _screen({}, MOCK_NAMES, MOCK_FEES, MOCK_AUM,
-                         sort_by="aum", top=10)
+        result = _screen({}, MOCK_NAMES, MOCK_FEES, MOCK_AUM, sort_by="aum", top=10)
         assert not result.empty
         vals = result["aum"].tolist()
         assert vals == sorted(vals, reverse=True)
 
     def test_db_only_stat_fee_ascending(self):
-        result = _screen({}, MOCK_NAMES, MOCK_FEES, MOCK_AUM,
-                         sort_by="fee", top=10)
+        result = _screen({}, MOCK_NAMES, MOCK_FEES, MOCK_AUM, sort_by="fee", top=10)
         assert not result.empty
         vals = result["fee"].tolist()
         assert vals == sorted(vals)
@@ -155,8 +170,9 @@ class TestScreen:
             "1306": _make_ohlcv(base_close=1000),
             "9999": _make_spike_ohlcv(),
         }
-        result = _screen(ohlcv, MOCK_NAMES, MOCK_FEES, MOCK_AUM,
-                         sort_by="return_pct", top=10)
+        result = _screen(
+            ohlcv, MOCK_NAMES, MOCK_FEES, MOCK_AUM, sort_by="return_pct", top=10
+        )
         if len(result) >= 2:
             assert abs(result.iloc[0]["return_pct"]) >= abs(
                 result.iloc[1]["return_pct"]
