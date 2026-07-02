@@ -61,7 +61,10 @@ _db_checked = False  # has auto-sync been attempted this session?
 
 
 def _ensure_db() -> None:
-    """Auto-sync the DB if missing or stale (> 1 day). Runs once per session."""
+    """Auto-sync the DB if missing or the remote release is newer.
+
+    Runs once per session.
+    """
     global _db_checked  # noqa: PLW0603
     if _db_checked:
         return

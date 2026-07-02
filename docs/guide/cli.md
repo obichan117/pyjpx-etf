@@ -75,7 +75,7 @@ Download the latest PCF database from GitHub Releases.
 
 | Flag | Description |
 |------|-------------|
-| `--force` | Re-download even if local DB is less than 1 day old |
+| `--force` | Re-download even if the local DB already matches the published release |
 
 ```
 $ etf sync

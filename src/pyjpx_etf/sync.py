@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import sys
-import time
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 import requests
@@ -14,13 +15,35 @@ from .exceptions import DatabaseError
 __all__ = ["sync"]
 
 
+def _remote_mtime() -> float | None:
+    """Last-Modified of the release asset as a Unix timestamp, or None."""
+    try:
+        resp = requests.head(
+            _DB_RELEASE_URL, allow_redirects=True, timeout=config.timeout
+        )
+        resp.raise_for_status()
+        last_modified = resp.headers.get("last-modified")
+        if last_modified:
+            return parsedate_to_datetime(last_modified).timestamp()
+    except (requests.RequestException, TypeError, ValueError):
+        pass
+    return None
+
+
 def sync(*, force: bool = False) -> Path:
     """Download pcf.db from GitHub Releases.
+
+    Freshness is determined by comparing the release asset's Last-Modified
+    header to the local file's mtime: if the remote asset is not newer than
+    the local copy, the download is skipped. If the freshness check can't be
+    performed (offline, header unavailable), the local copy is kept as a
+    graceful degradation.
 
     Parameters
     ----------
     force : bool
-        Re-download even if local DB is fresh (< 1 day old).
+        Re-download even if the local copy matches the remote (i.e. skip the
+        freshness check).
 
     Returns
     -------
@@ -37,8 +60,9 @@ def sync(*, force: bool = False) -> Path:
     dest = db_path()
 
     if not force and dest.is_file():
-        age = time.time() - dest.stat().st_mtime
-        if age < 24 * 3600:
+        remote = _remote_mtime()
+        if remote is None or remote <= dest.stat().st_mtime:
+            # offline / header unavailable → keep local copy (graceful degradation)
             return dest
 
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -79,5 +103,13 @@ def sync(*, force: bool = False) -> Path:
     except Exception:
         tmp.unlink(missing_ok=True)
         raise
+
+    last_modified = resp.headers.get("last-modified")
+    if last_modified:
+        try:
+            ts = parsedate_to_datetime(last_modified).timestamp()
+            os.utime(dest, (ts, ts))
+        except (TypeError, ValueError):
+            pass  # leave mtime as-is
 
     return dest
