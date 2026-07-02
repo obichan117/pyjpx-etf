@@ -8,7 +8,7 @@ from pathlib import Path
 
 import requests
 
-from ..config import _RAKUTEN_URL, config
+from ..config import _RAKUTEN_URL, _UA_HEADERS, config
 from ._cache import TieredCache
 
 # Column indices (headerless CSV)
@@ -42,7 +42,7 @@ PERIOD_COLUMNS: dict[str, int] = {
 
 def _fetch_rakuten_csv() -> str:
     """Fetch the Rakuten ETF CSV and return raw text."""
-    resp = requests.get(_RAKUTEN_URL, timeout=config.timeout)
+    resp = requests.get(_RAKUTEN_URL, timeout=config.timeout, headers=_UA_HEADERS)
     resp.raise_for_status()
     resp.encoding = "utf-8-sig"
     return resp.text

@@ -25,6 +25,14 @@ _DB_RELEASE_URL = (
     "https://github.com/obichan117/pyjpx-etf/releases/download/db-latest/pcf.db"
 )
 
+_UA_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/126.0.0.0 Safari/537.36"
+    )
+}
+
 _ALIASES: dict[str, str] = {
     "topix": "1306",
     "225": "1321",

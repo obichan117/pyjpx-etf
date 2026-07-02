@@ -6,7 +6,7 @@ import time
 
 import requests
 
-from ..config import config
+from ..config import _UA_HEADERS, config
 from ..exceptions import ETFNotFoundError, FetchError
 
 
@@ -30,7 +30,7 @@ def fetch_pcf(code: str) -> str:
 
         url = url_template.format(code=code)
         try:
-            response = requests.get(url, timeout=config.timeout)
+            response = requests.get(url, timeout=config.timeout, headers=_UA_HEADERS)
         except requests.RequestException as e:
             errors.append(FetchError(f"Request failed for {url}: {e}"))
             continue
