@@ -25,7 +25,7 @@ GitHub Actions (daily) → pcf.db → GitHub Releases
 ```python
 import pyjpx_etf as etf
 
-path = etf.sync()         # download if missing or older than 1 day
+path = etf.sync()         # checks whether the published database is newer than your local copy; downloads only if so
 path = etf.sync(force=True)  # always re-download
 ```
 

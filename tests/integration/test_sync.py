@@ -55,17 +55,16 @@ class TestSync:
         assert mtime1 == mtime2  # not re-downloaded
 
     def test_sync_force_redownloads(self, tmp_path, monkeypatch):
-        import time
-
         from pyjpx_etf.config import config
 
         monkeypatch.setattr(config, "db_path", tmp_path / "pcf.db")
         path1 = sync(force=True)
-        mtime1 = path1.stat().st_mtime
+        size1 = path1.stat().st_size
 
-        time.sleep(1.1)
+        # Corrupt the local copy; force must re-download the full DB.
+        # (mtime is stamped to the remote Last-Modified on every download,
+        # so mtime comparison can no longer detect a re-download.)
+        path1.write_bytes(b"corrupt")
 
         path2 = sync(force=True)
-        mtime2 = path2.stat().st_mtime
-
-        assert mtime2 > mtime1
+        assert path2.stat().st_size == size1
