@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+__all__ = ["Config", "config"]
+
 _ICE_URL = "https://inav.ice.com/pcf-download/{code}.csv"
 _SOLACTIVE_URL = (
     "https://www.solactive.com/downloads/etfservices/tse-pcf/single/{code}.csv"

@@ -11,6 +11,8 @@ import requests
 from .config import _DB_RELEASE_URL, config
 from .exceptions import DatabaseError
 
+__all__ = ["sync"]
+
 
 def sync(*, force: bool = False) -> Path:
     """Download pcf.db from GitHub Releases.

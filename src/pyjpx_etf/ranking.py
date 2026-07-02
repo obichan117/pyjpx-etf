@@ -8,6 +8,8 @@ from ._internal.fees import get_fees
 from ._internal.rakuten import PERIOD_COLUMNS, get_rakuten_data
 from .config import config
 
+__all__ = ["ranking"]
+
 _VALID_PERIODS = tuple(PERIOD_COLUMNS.keys())
 
 

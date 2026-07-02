@@ -7,6 +7,8 @@ import pandas as pd
 from ._internal.db import read_history
 from .exceptions import DatabaseError
 
+__all__ = ["history"]
+
 
 def history(etf_code: str, holding_code: str | None = None) -> pd.DataFrame:
     """Return weight history for an ETF.

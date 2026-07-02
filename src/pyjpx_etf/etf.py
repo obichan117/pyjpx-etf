@@ -16,6 +16,8 @@ from ._internal.rakuten import get_rakuten_data
 from .config import config
 from .models import ETFInfo, Holding
 
+__all__ = ["ETF"]
+
 
 def _resolve_japanese_names(
     info: ETFInfo, holdings: list[Holding]
