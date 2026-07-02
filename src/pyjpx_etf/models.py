@@ -6,6 +6,8 @@ import datetime
 from dataclasses import asdict, dataclass
 from typing import Any
 
+__all__ = ["ETFInfo", "Holding"]
+
 
 @dataclass(frozen=True)
 class ETFInfo:

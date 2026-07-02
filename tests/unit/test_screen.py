@@ -1,21 +1,23 @@
-"""Tests for _internal/cli_screen.py — ETF screener logic and formatting."""
+"""Tests for _internal/screen/ (signals + display) — screener logic and formatting."""
 
 from __future__ import annotations
+
+import sqlite3
 
 import pandas as pd
 import pytest
 
-pytest.importorskip("pyjquants")
-pytest.importorskip("pykabutan")
-
-from pyjpx_etf._internal.cli_screen import (  # noqa: E402
-    ROLLING_WINDOW,
-    _compute_signals,
+from pyjpx_etf._internal.screen import main_screen
+from pyjpx_etf._internal.screen.display import (
     _fmt,
     _fmt_yen,
+    _truncate_name,
+)
+from pyjpx_etf._internal.screen.signals import (
+    ROLLING_WINDOW,
+    _compute_signals,
     _safe_round,
     _screen,
-    _truncate_name,
 )
 
 # ---------------------------------------------------------------------------
@@ -291,3 +293,100 @@ class TestTruncateName:
         name = "日経半導体株ＥＴＦ"  # each char ~2 cols
         result = _truncate_name(name, 10)
         assert result.endswith("…")
+
+
+# ---------------------------------------------------------------------------
+# main_screen — lazy extras guard
+# ---------------------------------------------------------------------------
+
+
+def _make_fee_db(tmp_path):
+    """Build a minimal pcf.db with rows for a `--by fee` screen."""
+    from pyjpx_etf._internal.db_core import _SCHEMA_SQL
+
+    db_file = tmp_path / "pcf.db"
+    conn = sqlite3.connect(db_file)
+    conn.executescript(_SCHEMA_SQL)
+    conn.execute(
+        "INSERT INTO etfs (code, name_ja, name_en, fee) VALUES (?, ?, ?, ?)",
+        ("1306", "TOPIX ETF", "TOPIX ETF", 0.06),
+    )
+    conn.execute(
+        "INSERT INTO etfs (code, name_ja, name_en, fee) VALUES (?, ?, ?, ?)",
+        ("2644", "半導体ETF", "Semiconductor ETF", 0.30),
+    )
+    conn.execute(
+        "INSERT INTO pcf_info (code, date, name, cash_component, shares_outstanding) "
+        "VALUES (?, ?, ?, ?, ?)",
+        ("1306", "2026-06-30", "TOPIX ETF", 1000.0, 100000),
+    )
+    conn.execute(
+        "INSERT INTO pcf_info (code, date, name, cash_component, shares_outstanding) "
+        "VALUES (?, ?, ?, ?, ?)",
+        ("2644", "2026-06-30", "半導体ETF", 500.0, 50000),
+    )
+    conn.execute(
+        "INSERT INTO pcf_holdings "
+        "(code, date, holding_code, name, isin, exchange, currency, shares, "
+        "price, weight) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            "1306",
+            "2026-06-30",
+            "7203",
+            "TOYOTA",
+            "JP001",
+            "TSE",
+            "JPY",
+            1000.0,
+            2500.0,
+            0.6,
+        ),
+    )
+    conn.commit()
+    conn.close()
+    return db_file
+
+
+class TestMainScreenExtrasGuard:
+    def test_ohlcv_stat_without_extras_exits(self, tmp_path, monkeypatch, capsys):
+        """An OHLCV stat with pyjquants/pykabutan missing prints the install
+        hint and exits with code 1, before ever touching the DB queries."""
+        import importlib.util as _importlib_util
+
+        original_find_spec = _importlib_util.find_spec
+
+        def fake_find_spec(name, *args, **kwargs):
+            if name in ("pyjquants", "pykabutan"):
+                return None
+            return original_find_spec(name, *args, **kwargs)
+
+        monkeypatch.setattr("importlib.util.find_spec", fake_find_spec)
+
+        # DB existence is checked before the extras guard, so an empty file
+        # is enough to get past it — the guard fires before any query runs.
+        db_file = tmp_path / "pcf.db"
+        db_file.touch()
+
+        with pytest.raises(SystemExit) as exc_info:
+            main_screen(["--by", "range_pct", "--db", str(db_file)])
+
+        assert exc_info.value.code == 1
+        err = capsys.readouterr().err
+        assert "pip install 'pyjpx-etf[screen]'" in err
+
+    def test_fee_stat_skips_guard_without_extras(self, tmp_path, monkeypatch, capsys):
+        """`--by fee` is a DB-only stat, so it must work even when
+        pyjquants/pykabutan are unavailable."""
+        monkeypatch.setattr(
+            "importlib.util.find_spec",
+            lambda name, *args, **kwargs: None,
+        )
+
+        db_file = _make_fee_db(tmp_path)
+
+        main_screen(["--by", "fee", "--db", str(db_file)])
+
+        out = capsys.readouterr().out
+        assert "ETF Screener" in out
+        assert "1306" in out
+        assert "2644" in out

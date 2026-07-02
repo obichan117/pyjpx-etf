@@ -7,6 +7,8 @@ import pandas as pd
 from ._internal.db import search_by_holding
 from .exceptions import DatabaseError
 
+__all__ = ["search"]
+
 
 def search(stock_code: str, *, n: int = 10, date: str | None = None) -> pd.DataFrame:
     """Find ETFs that hold a given stock, ranked by weight.

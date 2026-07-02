@@ -59,30 +59,24 @@ src/pyjpx_etf/
     ├── cli_show.py    # CLI handler: etf <code>
     ├── cli_rank.py    # CLI handler: etf rank
     ├── cli_db.py      # CLI handlers: etf sync, search, history
-    └── cli_screen.py  # CLI handler: etf screen — ETF screener (requires [screen] extras)
-                       #   ⚠ 673-line god file; target: split into _internal/screen/ (see below)
+    └── screen/        # CLI handler: etf screen — ETF screener ([screen] extras for OHLCV stats)
+        ├── __init__.py # main_screen() entry + LAZY extras-guard (fires only for OHLCV stats)
+        ├── ohlcv.py    # I/O: J-Quants + Kabutan threaded fetch + 1-day date-keyed disk cache
+        ├── signals.py  # Pure: stat constants, _compute_signals, _screen — pandas only, no I/O
+        ├── display.py  # Table rendering, column profiles, _fmt/_fmt_yen, help text
+        └── db.py       # pcf.db inputs: codes, names, fees, AUM
 ```
 
-### Target Architecture: screen/ subpackage (decided 2026-07-02 audit)
+### Screen subsystem (refactored 2026-07-02 from a 673-line cli_screen.py)
 
-`cli_screen.py` will be split into a subpackage mirroring the fetch/parse split:
-
-```
-_internal/screen/
-├── __init__.py    # main_screen() entry + LAZY extras-guard (fires only when OHLCV needed)
-├── ohlcv.py       # I/O: J-Quants + Kabutan threaded fetch + 1-day disk cache
-├── signals.py     # Pure: _compute_signals, _screen — pandas only, no I/O
-└── display.py     # Table rendering, column profiles, _fmt/_fmt_yen, help text
-```
-
-Key decisions from the audit:
-- **screen is kept** — its purpose is filtering ETFs with unusual volatility (tracking
-  errors) for potential arbitrage (`--by range_ratio`, `--by vol_ratio`).
-- **Lazy extras-guard**: the current module-level ImportError (raised when
-  pyjquants/pykabutan missing) broke CI test collection and blocks DB-only stats
-  (`--by aum|fee`) needlessly. Guard moves inside `main_screen()`, only for OHLCV stats.
-- **db_path bug**: cli_screen hardcodes `~/.cache/pyjpx-etf/pcf.db` instead of using
-  `db.db_path()` (ignores `config.db_path`) — must be fixed.
+- **Purpose**: filtering ETFs with unusual volatility (tracking errors) for potential
+  arbitrage (`--by range_ratio`, `--by vol_ratio`).
+- **Lazy extras-guard**: `screen/` imports cleanly without pyjquants/pykabutan; the
+  guard fires inside `main_screen()` only for OHLCV stats. `--by aum|fee` works with
+  no extras. (The old module-level ImportError broke CI test collection.)
+- **OHLCV cache is intentionally NOT TieredCache**: needs calendar-day freshness
+  (date-keyed files) not elapsed-TTL, stores DataFrames needing custom JSON
+  encode/decode, and runs one-shot (no memory tier).
 - **Future signal**: iNAV premium/discount from PCF data (true mispricing detector for
   arbitrage) — would live in `screen/premium.py`. Not yet implemented.
 
@@ -244,8 +238,10 @@ Triggers: cron 07:55 JST Mon-Fri + manual `workflow_dispatch`. Downloads previou
 ⚠ **GitHub auto-disables scheduled workflows after 60 days without repo activity**
 (`disabled_inactivity`). This killed the cron 2026-05-13 → 2026-07-02, leaving a
 permanent ~7-week gap in the append-only PCF history (no backfill source exists).
-The fix (`gautamkrishnar/keepalive-workflow` step) lives on `fix/daily-pcf-keepalive`
-and must stay in the workflow.
+The fix is the "Keep workflow alive" step (`gh api -X PUT .../workflows/daily-pcf.yml/enable`
++ `actions: write` permission) — it must stay in the workflow. Do NOT use
+`gautamkrishnar/keepalive-workflow`: that action's repo is ToS-blocked by GitHub
+and fails with "Repository access blocked".
 
 ### Incident log (2026-07-02 audit)
 
