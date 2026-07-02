@@ -383,4 +383,5 @@ class TestCLIHelp:
         assert "sync" in out
         assert "find" in out
         assert "history" in out
+        assert "screen" in out
         assert "--live" in out

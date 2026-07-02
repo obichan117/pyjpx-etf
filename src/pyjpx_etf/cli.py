@@ -56,15 +56,8 @@ def main() -> None:
     from ._internal.cli_show import main_etf
 
     if argv[0] == "screen":
-        try:
-            from ._internal.cli_screen import main_screen
-        except ImportError:
-            print(
-                "Error: screen requires extra dependencies.\n"
-                "Install with: pip install 'pyjpx-etf[screen]'",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+        from ._internal.screen import main_screen
+
         main_screen(argv[1:])
     elif argv[0] == "rank":
         main_rank(argv[1:])
