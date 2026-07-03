@@ -96,3 +96,51 @@ class TestRunPipeline:
         mock_pcf.assert_called_once()
         mock_fees.assert_called_once()
         mock_names.assert_called_once()
+
+
+class TestRunPipelineFallback:
+    @patch("pyjpx_etf._internal.pipeline._store_master_names")
+    @patch("pyjpx_etf._internal.pipeline._store_fees")
+    @patch("pyjpx_etf._internal.pipeline._fetch_and_store_pcf", return_value=True)
+    @patch(
+        "pyjpx_etf._internal.pipeline._fetch_all_etf_codes",
+        return_value=[],
+    )
+    def test_falls_back_to_db_codes_when_rakuten_empty(
+        self, mock_codes, mock_pcf, mock_fees, mock_names, tmp_path
+    ):
+        db_file = tmp_path / "pipeline.db"
+        original = config.db_path
+        config.db_path = db_file
+        conn = db.get_connection(readonly=False)
+        db.init_schema(conn)
+        db.insert_pcf_info(conn, "1306", "2026-03-01", name="TOPIX")
+        db.insert_pcf_info(conn, "1321", "2026-03-01", name="NIKKEI")
+        conn.commit()
+        conn.close()
+        config.db_path = original
+
+        run_pipeline(db_file)
+
+        mock_codes.assert_called_once()
+        called_codes = {call.args[1] for call in mock_pcf.call_args_list}
+        assert called_codes == {"1306", "1321"}
+
+    @patch(
+        "pyjpx_etf._internal.pipeline._fetch_all_etf_codes",
+        return_value=[],
+    )
+    def test_raises_when_rakuten_and_db_both_empty(self, mock_codes, tmp_path):
+        db_file = tmp_path / "pipeline.db"
+        with pytest.raises(RuntimeError):
+            run_pipeline(db_file)
+
+    @patch("pyjpx_etf._internal.pipeline._fetch_and_store_pcf", return_value=False)
+    @patch(
+        "pyjpx_etf._internal.pipeline._fetch_all_etf_codes",
+        return_value=["1306", "1321"],
+    )
+    def test_raises_when_all_fetches_fail(self, mock_codes, mock_pcf, tmp_path):
+        db_file = tmp_path / "pipeline.db"
+        with pytest.raises(RuntimeError):
+            run_pipeline(db_file)

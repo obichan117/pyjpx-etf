@@ -119,8 +119,20 @@ def run_pipeline(
         db.init_schema(conn)
 
         # 1. Get all ETF codes
-        logger.info("Fetching ETF master list...")
+        logger.info("Fetching ETF universe from Rakuten...")
         codes = _fetch_all_etf_codes()
+        if not codes:
+            logger.warning(
+                "Rakuten returned no ETF codes; falling back to codes already in DB"
+            )
+            rows = conn.execute(
+                "SELECT DISTINCT code FROM pcf_info ORDER BY code"
+            ).fetchall()
+            codes = [row["code"] for row in rows]
+        if not codes:
+            raise RuntimeError(
+                "No ETF codes available (Rakuten fetch and DB fallback both empty)"
+            )
         logger.info("Found %d ETF codes", len(codes))
 
         # 2. Fetch PCF for each code
@@ -151,6 +163,11 @@ def run_pipeline(
 
         conn.commit()
         logger.info("PCF fetch complete: %d success, %d failed", success, failed)
+        if success == 0 and len(codes) > 0:
+            raise RuntimeError(
+                f"PCF fetch: 0 of {len(codes)} succeeded — "
+                "aborting instead of producing a no-op snapshot"
+            )
 
         # 3. Fetch fees
         logger.info("Fetching fees...")

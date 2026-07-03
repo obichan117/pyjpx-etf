@@ -9,13 +9,13 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-from ..config import _JPX_FEE_URL, config
+from ..config import _JPX_FEE_URL, _UA_HEADERS, config
 from ._cache import TieredCache
 
 
 def _fetch_fee_html() -> str:
     """Fetch the JPX ETF fee page and return raw HTML."""
-    resp = requests.get(_JPX_FEE_URL, timeout=config.timeout)
+    resp = requests.get(_JPX_FEE_URL, timeout=config.timeout, headers=_UA_HEADERS)
     resp.raise_for_status()
     resp.encoding = resp.apparent_encoding
     return resp.text

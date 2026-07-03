@@ -8,13 +8,13 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-from ..config import _JPX_MASTER_URL, config
+from ..config import _JPX_MASTER_URL, _UA_HEADERS, config
 from ._cache import TieredCache
 
 
 def _fetch_master_xls() -> bytes:
     """Fetch the JPX master XLS and return raw bytes."""
-    resp = requests.get(_JPX_MASTER_URL, timeout=config.timeout)
+    resp = requests.get(_JPX_MASTER_URL, timeout=config.timeout, headers=_UA_HEADERS)
     resp.raise_for_status()
     return resp.content
 

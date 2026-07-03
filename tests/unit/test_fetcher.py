@@ -4,6 +4,7 @@ import pytest
 import requests
 
 from pyjpx_etf._internal.fetcher import _looks_like_csv, fetch_pcf
+from pyjpx_etf.config import _UA_HEADERS
 from pyjpx_etf.exceptions import ETFNotFoundError, FetchError
 
 VALID_CSV = """\
@@ -65,7 +66,9 @@ class TestFetchPCF:
 
         result = fetch_pcf("1306")
         assert result == VALID_CSV
-        mock_get.assert_called_once_with("https://provider1/1306.csv", timeout=30)
+        mock_get.assert_called_once_with(
+            "https://provider1/1306.csv", timeout=30, headers=_UA_HEADERS
+        )
 
     def test_fallback_to_second_provider(self, mock_get, mock_config):
         self._setup_config(mock_config)
