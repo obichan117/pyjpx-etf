@@ -11,6 +11,8 @@ from pyjpx_etf.cli import main
 # pyjpx_etf.ranking is shadowed by the function in __init__.py.
 # importlib gives us the actual module for patching.
 _ranking_mod = importlib.import_module("pyjpx_etf.ranking")
+# pyjpx_etf.search (module) is shadowed by the function in __init__.py.
+_search_mod = importlib.import_module("pyjpx_etf.search")
 
 MOCK_CSV = """\
 ETF Code,ETF Name,Fund Cash Component,Shares Outstanding,Fund Date
@@ -409,7 +411,7 @@ class TestCLIFindGap:
                 }
             ]
         )
-        with patch("pyjpx_etf.search.search", return_value=mock_df):
+        with patch.object(_search_mod, "search", return_value=mock_df):
             with patch("sys.argv", ["etf", "find", "285A", "--gap", "+8"]):
                 main()
         out = capsys.readouterr().out
@@ -430,7 +432,7 @@ class TestCLIFindGap:
                 }
             ]
         )
-        with patch("pyjpx_etf.search.search", return_value=mock_df):
+        with patch.object(_search_mod, "search", return_value=mock_df):
             with patch("sys.argv", ["etf", "find", "285A"]):
                 main()
         out = capsys.readouterr().out
