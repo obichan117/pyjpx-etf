@@ -9,6 +9,67 @@ import pandas as pd
 from ..models import ETFInfo, Holding
 from .db_core import db_exists, get_connection
 
+# Shared AUM aggregation: cash component + market value of holdings on the
+# latest date. Reused by search_by_holding, concentration_stats, and the
+# screener (_internal/screen/db.py imports this constant directly).
+_AUM_SQL = """
+    SELECT pi.code,
+           pi.cash_component + COALESCE(h.total_mv, 0) AS aum
+    FROM pcf_info pi
+    INNER JOIN (
+        SELECT code, MAX(date) AS max_date
+        FROM pcf_info
+        GROUP BY code
+    ) latest ON pi.code = latest.code AND pi.date = latest.max_date
+    LEFT JOIN (
+        SELECT code, date, SUM(shares * price) AS total_mv
+        FROM pcf_holdings
+        GROUP BY code, date
+    ) h ON pi.code = h.code AND pi.date = h.date
+"""
+
+# Top-holding concentration per ETF (top1/top3/top10 cumulative weight).
+# Equities only (4-char holding_code) — excludes FX forwards/bonds rows.
+# Reused by concentration_stats and the screener (_internal/screen/db.py
+# imports this constant directly).
+_CONCENTRATION_SQL = """
+    WITH latest AS (
+        SELECT code, MAX(date) AS d FROM pcf_holdings GROUP BY code
+    ),
+    ranked AS (
+        SELECT h.code, h.holding_code, h.name, h.weight,
+               ROW_NUMBER() OVER (PARTITION BY h.code ORDER BY h.weight DESC) AS rn
+        FROM pcf_holdings h
+        JOIN latest l ON h.code = l.code AND h.date = l.d
+        WHERE h.weight IS NOT NULL AND h.weight > 0
+          -- JP equities only: 4 chars starting with a digit (e.g. 6857, 285A).
+          -- Excludes CASH rows, FX forwards/bonds, and foreign feeder
+          -- tickers like IEMG (fund-of-fund ETFs holding one foreign ETF).
+          AND TRIM(h.holding_code) GLOB '[1-9][0-9A-Z][0-9A-Z][0-9A-Z]'
+    )
+    SELECT r.code,
+           MAX(CASE WHEN rn = 1 THEN r.holding_code END) AS top_code,
+           MAX(CASE WHEN rn = 1 THEN r.name END)         AS top_name,
+           SUM(CASE WHEN rn <= 1 THEN r.weight END)      AS top1,
+           SUM(CASE WHEN rn <= 3 THEN r.weight END)      AS top3,
+           SUM(CASE WHEN rn <= 10 THEN r.weight END)     AS top10,
+           COUNT(*)                                      AS n_holdings
+    FROM ranked r
+    GROUP BY r.code
+"""
+
+_CONCENTRATION_COLUMNS = [
+    "code",
+    "name",
+    "top_code",
+    "top_name",
+    "top1",
+    "top3",
+    "top10",
+    "n_holdings",
+    "aum",
+]
+
 
 def read_etf_info(code: str, date: str | None = None) -> ETFInfo | None:
     """Read ETF info from the database. Uses latest date if date is None."""
@@ -143,12 +204,13 @@ def search_by_holding(
     holding_code: str, *, n: int = 10, date: str | None = None
 ) -> pd.DataFrame:
     """Find ETFs holding a given stock, ranked by weight descending."""
+    columns = ["code", "name", "weight", "shares", "aum"]
     if not db_exists():
-        return pd.DataFrame(columns=["code", "name", "weight", "shares"])
+        return pd.DataFrame(columns=columns)
     try:
         conn = get_connection()
     except Exception:
-        return pd.DataFrame(columns=["code", "name", "weight", "shares"])
+        return pd.DataFrame(columns=columns)
     try:
         if date is None:
             sql = """
@@ -177,11 +239,16 @@ def search_by_holding(
             """
             rows = conn.execute(sql, (holding_code, date, n)).fetchall()
         if not rows:
-            return pd.DataFrame(columns=["code", "name", "weight", "shares"])
+            return pd.DataFrame(columns=columns)
 
         from ..config import config
 
         name_key = "name_ja" if config.lang == "ja" else "name_en"
+        aum_map = {
+            r["code"]: r["aum"]
+            for r in conn.execute(_AUM_SQL).fetchall()
+            if r["aum"] is not None
+        }
         return pd.DataFrame(
             [
                 {
@@ -189,6 +256,7 @@ def search_by_holding(
                     "name": r[name_key] or r["holding_name"] or "",
                     "weight": r["weight"],
                     "shares": r["shares"],
+                    "aum": aum_map.get(r["code"]),
                 }
                 for r in rows
             ]
@@ -280,3 +348,58 @@ def read_history(etf_code: str, holding_code: str | None = None) -> pd.DataFrame
             )
     finally:
         conn.close()
+
+
+def concentration_stats(*, n: int | None = None, by: str = "top1") -> pd.DataFrame:
+    """Rank ETFs by portfolio concentration (top-holding weight).
+
+    Weights (``top1``/``top3``/``top10``) are fractions, matching
+    ``search_by_holding`` (e.g. ``0.22`` for 22%).
+    """
+    if not db_exists():
+        return pd.DataFrame(columns=_CONCENTRATION_COLUMNS)
+    try:
+        conn = get_connection()
+    except Exception:
+        return pd.DataFrame(columns=_CONCENTRATION_COLUMNS)
+    try:
+        rows = conn.execute(_CONCENTRATION_SQL).fetchall()
+        if not rows:
+            return pd.DataFrame(columns=_CONCENTRATION_COLUMNS)
+
+        from ..config import config
+
+        name_key = "name_ja" if config.lang == "ja" else "name_en"
+        etf_names = {
+            r["code"]: r[name_key]
+            for r in conn.execute("SELECT code, name_ja, name_en FROM etfs").fetchall()
+        }
+        aum_map = {
+            r["code"]: r["aum"]
+            for r in conn.execute(_AUM_SQL).fetchall()
+            if r["aum"] is not None
+        }
+
+        df = pd.DataFrame(
+            [
+                {
+                    "code": r["code"],
+                    "name": etf_names.get(r["code"]) or "",
+                    "top_code": r["top_code"],
+                    "top_name": r["top_name"],
+                    "top1": r["top1"],
+                    "top3": r["top3"],
+                    "top10": r["top10"],
+                    "n_holdings": r["n_holdings"],
+                    "aum": aum_map.get(r["code"]),
+                }
+                for r in rows
+            ]
+        )
+    finally:
+        conn.close()
+
+    df = df.sort_values(by, ascending=False).reset_index(drop=True)
+    if n is not None:
+        df = df.head(n)
+    return df.reset_index(drop=True)

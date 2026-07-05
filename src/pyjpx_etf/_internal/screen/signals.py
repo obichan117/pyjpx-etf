@@ -28,7 +28,14 @@ OHLCV_STATS = {
 DB_STATS = {
     "aum": "Total net asset value (yen)",
     "fee": "Annual expense ratio %",
+    "top1": "Top holding weight",
+    "top3": "Top-3 cumulative weight",
+    "top10": "Top-10 cumulative weight",
 }
+
+# Concentration stats: need the pcf_holdings-derived _get_concentration() data
+# in addition to aum/fee (subset of DB_STATS with special row-building logic).
+CONCENTRATION_STATS = {"top1", "top3", "top10"}
 
 STATS = {**OHLCV_STATS, **DB_STATS}
 
@@ -73,11 +80,28 @@ def _screen(
     aum: dict[str, float],
     sort_by: str,
     top: int,
+    concentration: dict[str, dict] | None = None,
 ) -> pd.DataFrame:
     rows = []
 
+    # Concentration stats: build rows from top1/top3/top10 weight data
+    if sort_by in CONCENTRATION_STATS:
+        for code, stats in (concentration or {}).items():
+            rows.append(
+                {
+                    "code": code,
+                    "name": names.get(code, ""),
+                    "top_name": stats.get("top_name") or "",
+                    "top1": (stats.get("top1") or 0.0) * 100,
+                    "top3": (stats.get("top3") or 0.0) * 100,
+                    "top10": (stats.get("top10") or 0.0) * 100,
+                    "n_holdings": stats.get("n_holdings"),
+                    "aum": aum.get(code),
+                    "fee": fees.get(code),
+                }
+            )
     # DB-only stats: build rows from DB data, no OHLCV needed
-    if sort_by in DB_STATS:
+    elif sort_by in DB_STATS:
         for code in set(list(aum.keys()) + list(fees.keys())):
             rows.append(
                 {

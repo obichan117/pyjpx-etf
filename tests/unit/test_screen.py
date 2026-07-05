@@ -390,3 +390,103 @@ class TestMainScreenExtrasGuard:
         assert "ETF Screener" in out
         assert "1306" in out
         assert "2644" in out
+
+
+# ---------------------------------------------------------------------------
+# main_screen — concentration stats (top1/top3/top10)
+# ---------------------------------------------------------------------------
+
+
+def _make_concentration_db(tmp_path):
+    """Build a minimal pcf.db with a concentrated and a diversified ETF."""
+    from pyjpx_etf._internal.db_core import _SCHEMA_SQL
+
+    db_file = tmp_path / "pcf.db"
+    conn = sqlite3.connect(db_file)
+    conn.executescript(_SCHEMA_SQL)
+    conn.execute(
+        "INSERT INTO etfs (code, name_ja, name_en, fee) VALUES (?, ?, ?, ?)",
+        ("9001", "集中ETF", "Concentrated ETF", 0.10),
+    )
+    conn.execute(
+        "INSERT INTO etfs (code, name_ja, name_en, fee) VALUES (?, ?, ?, ?)",
+        ("9002", "分散ETF", "Diversified ETF", 0.20),
+    )
+    conn.execute(
+        "INSERT INTO pcf_info (code, date, name, cash_component, shares_outstanding) "
+        "VALUES (?, ?, ?, ?, ?)",
+        ("9001", "2026-06-30", "Concentrated ETF", 1000.0, 1000),
+    )
+    conn.execute(
+        "INSERT INTO pcf_info (code, date, name, cash_component, shares_outstanding) "
+        "VALUES (?, ?, ?, ?, ?)",
+        ("9002", "2026-06-30", "Diversified ETF", 1000.0, 1000),
+    )
+    conn.execute(
+        "INSERT INTO pcf_holdings "
+        "(code, date, holding_code, name, isin, exchange, currency, shares, "
+        "price, weight) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            "9001",
+            "2026-06-30",
+            "1111",
+            "BigCo",
+            "JP101",
+            "TSE",
+            "JPY",
+            100.0,
+            1000.0,
+            0.22,
+        ),
+    )
+    conn.execute(
+        "INSERT INTO pcf_holdings "
+        "(code, date, holding_code, name, isin, exchange, currency, shares, "
+        "price, weight) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            "9001",
+            "2026-06-30",
+            "2222",
+            "SmallCo",
+            "JP102",
+            "TSE",
+            "JPY",
+            100.0,
+            100.0,
+            0.03,
+        ),
+    )
+    for i in range(20):
+        conn.execute(
+            "INSERT INTO pcf_holdings "
+            "(code, date, holding_code, name, isin, exchange, currency, shares, "
+            "price, weight) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                "9002",
+                "2026-06-30",
+                f"{3000 + i}",
+                f"Stock{i}",
+                f"JP20{i}",
+                "TSE",
+                "JPY",
+                10.0,
+                100.0,
+                0.02,
+            ),
+        )
+    conn.commit()
+    conn.close()
+    return db_file
+
+
+class TestMainScreenConcentration:
+    def test_by_top1_shows_topstock_and_orders_concentrated_first(
+        self, tmp_path, capsys
+    ):
+        db_file = _make_concentration_db(tmp_path)
+        main_screen(["--by", "top1", "--db", str(db_file), "--en"])
+        out = capsys.readouterr().out
+        assert "TopStock" in out
+        assert "9001" in out
+        assert "9002" in out
+        assert out.index("9001") < out.index("9002")

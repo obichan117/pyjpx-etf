@@ -53,6 +53,13 @@ etf.history("1306", "6857")  # Advantest weight in TOPIX over time
 etf.history("1306")          # top holdings with weight change
 ```
 
+### Concentration Screening
+
+```python
+etf.concentration()                 # top 20 ETFs by top-holding weight
+etf.search("285A", gap=8.0)         # ETFs holding Kioxia + estimated impact of a +8% gap
+```
+
 ### Language & Config
 
 ```python
@@ -100,6 +107,7 @@ Available periods: `1m` (default), `3m`, `6m`, `1y`, `3y`, `5y`, `10y`, `ytd`
 $ etf find 6857            # ETFs holding Advantest
 $ etf find 7203 5          # top 5 ETFs holding Toyota
 $ etf find 6857 --en       # English names
+$ etf find 285A --gap +8   # Kioxia gapped +8% — estimated impact per ETF
 ```
 
 ### Weight History
@@ -131,6 +139,7 @@ pip install 'pyjpx-etf[screen]'
 $ etf screen                    # top 20 by range_pct
 $ etf screen --by vol_ratio     # volume surges
 $ etf screen --by aum --top 10  # top 10 by fund size
+$ etf screen --by top1          # most concentrated ETFs (DB only, no extras needed)
 ```
 
 ### Aliases

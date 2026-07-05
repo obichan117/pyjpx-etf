@@ -10,7 +10,13 @@ from .exceptions import DatabaseError
 __all__ = ["search"]
 
 
-def search(stock_code: str, *, n: int = 10, date: str | None = None) -> pd.DataFrame:
+def search(
+    stock_code: str,
+    *,
+    n: int = 10,
+    date: str | None = None,
+    gap: float | None = None,
+) -> pd.DataFrame:
     """Find ETFs that hold a given stock, ranked by weight.
 
     Parameters
@@ -21,11 +27,17 @@ def search(stock_code: str, *, n: int = 10, date: str | None = None) -> pd.DataF
         Number of results to return.
     date : str | None
         Specific date (YYYY-MM-DD). Uses latest available if None.
+    gap : float | None
+        If given, adds an ``impact`` column estimating each ETF's NAV
+        impact in percent: ``weight`` (fraction) × ``gap`` (percent).
+        E.g. a stock that moved +8% (``gap=8.0``) with a 20% weight in an
+        ETF gives an impact of +1.6%.
 
     Returns
     -------
     pd.DataFrame
-        Columns: ``code``, ``name``, ``weight``, ``shares``.
+        Columns: ``code``, ``name``, ``weight``, ``shares``, ``aum``.
+        Adds ``impact`` when ``gap`` is given.
 
     Raises
     ------
@@ -38,4 +50,8 @@ def search(stock_code: str, *, n: int = 10, date: str | None = None) -> pd.DataF
     _ensure_db()
     if not db_exists():
         raise DatabaseError("Local database not found. Check your network connection.")
-    return search_by_holding(stock_code, n=n, date=date)
+    df = search_by_holding(stock_code, n=n, date=date)
+    if gap is not None:
+        df = df.copy()
+        df["impact"] = df["weight"] * gap
+    return df

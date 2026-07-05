@@ -81,6 +81,25 @@ _COL_FUND = {
     "aum": ("AUM", 10, lambda r: _fmt_yen(r.get("aum"), 10)),
     "fee": ("Fee%", 6, lambda r: _fmt(r.get("fee"), 6)),
 }
+_COL_CONCENTRATION = {
+    "top_name": (
+        "TopStock",
+        16,
+        lambda r: pad(_truncate_name(str(r.get("top_name") or ""), 16), 16),
+    ),
+    "top1": ("Top1%", 7, lambda r: _fmt(r.get("top1"), 7)),
+    "top3": ("Top3%", 7, lambda r: _fmt(r.get("top3"), 7)),
+    "top10": ("Top10%", 7, lambda r: _fmt(r.get("top10"), 7)),
+    "n_holdings": (
+        "#Hold",
+        5,
+        lambda r: (
+            f"{int(r['n_holdings']):>5}"
+            if r.get("n_holdings") is not None
+            else f"{'-':>5}"
+        ),
+    ),
+}
 
 # Which columns to show for each sort stat
 _DISPLAY_PROFILES: dict[str, list[str]] = {
@@ -100,6 +119,9 @@ _DISPLAY_PROFILES: dict[str, list[str]] = {
     "return_pct": ["return_pct", "range_pct", "vol_ratio", "turnover"],
     "aum": ["aum", "fee", "turnover", "turnover_ratio"],
     "fee": ["fee", "aum", "turnover"],
+    "top1": ["top1", "top3", "top10", "top_name", "n_holdings", "aum"],
+    "top3": ["top3", "top1", "top10", "top_name", "n_holdings", "aum"],
+    "top10": ["top10", "top1", "top3", "top_name", "n_holdings", "aum"],
 }
 
 # All column defs merged
@@ -109,6 +131,7 @@ _ALL_COLS = {
     **_COL_VOLUME,
     **_COL_RETURN,
     **_COL_FUND,
+    **_COL_CONCENTRATION,
 }
 
 
@@ -197,8 +220,11 @@ Available stats:
   return_pct      Daily return %
   aum             Total net asset value (from DB)
   fee             Annual expense ratio % (from DB)
+  top1            Top holding weight (from DB)
+  top3            Top-3 cumulative weight (from DB)
+  top10           Top-10 cumulative weight (from DB)
 
-Stats 'aum' and 'fee' use local DB only (no OHLCV fetch needed).
+Stats 'aum', 'fee', 'top1', 'top3', 'top10' use local DB only (no OHLCV fetch needed).
 OHLCV data is cached for 1 day at ~/.cache/pyjpx-etf/ohlcv/.
 
 Requires: pyjquants (+ JQUANTS_API_KEY), pykabutan, local pcf.db (etf sync)""")

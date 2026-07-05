@@ -2,6 +2,7 @@
 
 from .db_core import db_exists, db_path, get_connection
 from .db_read import (
+    concentration_stats,
     read_etf_dates,
     read_etf_fee,
     read_etf_info,
@@ -20,6 +21,7 @@ from .db_write import (
 )
 
 __all__ = [
+    "concentration_stats",
     "db_exists",
     "db_path",
     "get_connection",

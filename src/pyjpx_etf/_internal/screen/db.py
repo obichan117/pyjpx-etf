@@ -8,6 +8,8 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+from ..db_read import _AUM_SQL, _CONCENTRATION_SQL
+
 
 def _get_etf_codes(db_path: Path) -> list[str]:
     conn = sqlite3.connect(db_path)
@@ -47,21 +49,28 @@ def _get_etf_aum(db_path: Path) -> dict[str, float]:
     """Compute AUM for each ETF from the latest date in pcf_info + pcf_holdings."""
     conn = sqlite3.connect(db_path)
     try:
-        rows = conn.execute("""
-            SELECT pi.code,
-                   pi.cash_component + COALESCE(h.total_mv, 0) AS aum
-            FROM pcf_info pi
-            INNER JOIN (
-                SELECT code, MAX(date) AS max_date
-                FROM pcf_info
-                GROUP BY code
-            ) latest ON pi.code = latest.code AND pi.date = latest.max_date
-            LEFT JOIN (
-                SELECT code, date, SUM(shares * price) AS total_mv
-                FROM pcf_holdings
-                GROUP BY code, date
-            ) h ON pi.code = h.code AND pi.date = h.date
-        """).fetchall()
+        rows = conn.execute(_AUM_SQL).fetchall()
         return {r[0]: r[1] for r in rows if r[1] is not None}
+    finally:
+        conn.close()
+
+
+def _get_concentration(db_path: Path) -> dict[str, dict]:
+    """Compute top1/top3/top10 concentration stats for each ETF."""
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(_CONCENTRATION_SQL).fetchall()
+        return {
+            r["code"]: {
+                "top_code": r["top_code"],
+                "top_name": r["top_name"],
+                "top1": r["top1"],
+                "top3": r["top3"],
+                "top10": r["top10"],
+                "n_holdings": r["n_holdings"],
+            }
+            for r in rows
+        }
     finally:
         conn.close()

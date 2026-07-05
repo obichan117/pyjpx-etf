@@ -1,6 +1,8 @@
 import importlib
 from unittest.mock import patch
 
+import pandas as pd
+
 from pyjpx_etf import config
 from pyjpx_etf._internal.cli_fmt import format_yen
 from pyjpx_etf._internal.cli_show import _resolve_code
@@ -385,3 +387,51 @@ class TestCLIHelp:
         assert "history" in out
         assert "screen" in out
         assert "--live" in out
+
+    def test_help_includes_gap_flag(self, capsys):
+        with patch("sys.argv", ["etf", "--help"]):
+            main()
+        out = capsys.readouterr().out
+        assert "--gap" in out
+
+
+class TestCLIFindGap:
+    def test_find_gap_shows_impact(self, capsys):
+        mock_df = pd.DataFrame(
+            [
+                {
+                    "code": "1306",
+                    "name": "TOPIX ETF",
+                    "weight": 0.213,
+                    "shares": 1000,
+                    "aum": 1e11,
+                    "impact": 0.213 * 8.0,
+                }
+            ]
+        )
+        with patch("pyjpx_etf.search.search", return_value=mock_df):
+            with patch("sys.argv", ["etf", "find", "285A", "--gap", "+8"]):
+                main()
+        out = capsys.readouterr().out
+        assert "Impact" in out
+        line = next(line for line in out.splitlines() if "1306" in line)
+        assert "+" in line
+        assert "1.70" in line
+
+    def test_find_without_gap_has_no_impact(self, capsys):
+        mock_df = pd.DataFrame(
+            [
+                {
+                    "code": "1306",
+                    "name": "TOPIX ETF",
+                    "weight": 0.213,
+                    "shares": 1000,
+                    "aum": 1e11,
+                }
+            ]
+        )
+        with patch("pyjpx_etf.search.search", return_value=mock_df):
+            with patch("sys.argv", ["etf", "find", "285A"]):
+                main()
+        out = capsys.readouterr().out
+        assert "Impact" not in out
