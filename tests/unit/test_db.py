@@ -221,6 +221,31 @@ class TestReadQueries:
         assert df.iloc[0]["code"] == "1306"
         # cash_component=1000 + (1000*2500 + 500*5000) on latest date
         assert df.iloc[0]["aum"] == 5_001_000.0
+        assert df.iloc[0]["date"] == "2026-03-01"
+
+    def test_search_by_holding_excludes_dropped_stock(self, populated_db):
+        # 8035 was held on 2026-02-28 but is absent from 1306's latest
+        # snapshot (2026-03-01) — search must not resurrect the old weight.
+        db.insert_holdings(
+            populated_db,
+            "1306",
+            "2026-02-28",
+            [
+                Holding(
+                    code="8035",
+                    name="TOKYO ELECTRON",
+                    isin="JP003",
+                    exchange="TSE",
+                    currency="JPY",
+                    shares=100.0,
+                    price=30000.0,
+                    weight=0.3,
+                )
+            ],
+        )
+        populated_db.commit()
+        df = db.search_by_holding("8035")
+        assert df.empty
 
     def test_read_history_with_holding(self, populated_db):
         df = db.read_history("1306", "7203")

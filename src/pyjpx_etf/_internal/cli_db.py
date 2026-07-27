@@ -109,6 +109,8 @@ def main_search(argv: list[str]) -> None:
     if gap is not None:
         header_line += f"  {'Impact':>8}"
         sep_line += f"  {'─' * 8}"
+    header_line += f"  {'Date':<10}"
+    sep_line += f"  {'─' * 10}"
     print(header_line)
     print(sep_line)
     for _, row in df.iterrows():
@@ -123,6 +125,7 @@ def main_search(argv: list[str]) -> None:
             impact = row["impact"]  # already in percent: weight (fraction) × gap (%)
             sign = "+" if impact >= 0 else ""
             line += f"  {sign}{impact:>6.2f}%"
+        line += f"  {str(row.get('date') or '-'):<10}"
         print(line)
     print()
 

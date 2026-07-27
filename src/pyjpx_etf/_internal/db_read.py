@@ -204,7 +204,7 @@ def search_by_holding(
     holding_code: str, *, n: int = 10, date: str | None = None
 ) -> pd.DataFrame:
     """Find ETFs holding a given stock, ranked by weight descending."""
-    columns = ["code", "name", "weight", "shares", "aum"]
+    columns = ["code", "name", "weight", "shares", "aum", "date"]
     if not db_exists():
         return pd.DataFrame(columns=columns)
     try:
@@ -213,15 +213,18 @@ def search_by_holding(
         return pd.DataFrame(columns=columns)
     try:
         if date is None:
+            # Match only each ETF's latest snapshot. Scoping MAX(date) to the
+            # ETF (not the (ETF, holding) pair) is what excludes stocks the
+            # ETF has since dropped — history is append-only.
             sql = """
-                SELECT h.code, e.name_ja, e.name_en,
+                SELECT h.code, h.date, e.name_ja, e.name_en,
                     h.weight, h.shares, h.name AS holding_name
                 FROM pcf_holdings h
                 LEFT JOIN etfs e ON h.code = e.code
                 WHERE h.holding_code = ?
                   AND h.date = (
                       SELECT MAX(h2.date) FROM pcf_holdings h2
-                      WHERE h2.code = h.code AND h2.holding_code = h.holding_code
+                      WHERE h2.code = h.code
                   )
                 ORDER BY h.weight DESC
                 LIMIT ?
@@ -229,7 +232,7 @@ def search_by_holding(
             rows = conn.execute(sql, (holding_code, n)).fetchall()
         else:
             sql = """
-                SELECT h.code, e.name_ja, e.name_en,
+                SELECT h.code, h.date, e.name_ja, e.name_en,
                     h.weight, h.shares, h.name AS holding_name
                 FROM pcf_holdings h
                 LEFT JOIN etfs e ON h.code = e.code
@@ -257,6 +260,7 @@ def search_by_holding(
                     "weight": r["weight"],
                     "shares": r["shares"],
                     "aum": aum_map.get(r["code"]),
+                    "date": r["date"],
                 }
                 for r in rows
             ]

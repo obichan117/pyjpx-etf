@@ -36,7 +36,8 @@ def search(
     Returns
     -------
     pd.DataFrame
-        Columns: ``code``, ``name``, ``weight``, ``shares``, ``aum``.
+        Columns: ``code``, ``name``, ``weight``, ``shares``, ``aum``,
+        ``date`` (the snapshot date each row's weight comes from).
         Adds ``impact`` when ``gap`` is given.
 
     Raises

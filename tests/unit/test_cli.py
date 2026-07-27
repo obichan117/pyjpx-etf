@@ -408,6 +408,7 @@ class TestCLIFindGap:
                     "shares": 1000,
                     "aum": 1e11,
                     "impact": 0.213 * 8.0,
+                    "date": "2026-03-01",
                 }
             ]
         )
@@ -416,9 +417,11 @@ class TestCLIFindGap:
                 main()
         out = capsys.readouterr().out
         assert "Impact" in out
+        assert "Date" in out
         line = next(line for line in out.splitlines() if "1306" in line)
         assert "+" in line
         assert "1.70" in line
+        assert "2026-03-01" in line
 
     def test_find_without_gap_has_no_impact(self, capsys):
         mock_df = pd.DataFrame(
@@ -429,6 +432,7 @@ class TestCLIFindGap:
                     "weight": 0.213,
                     "shares": 1000,
                     "aum": 1e11,
+                    "date": "2026-03-01",
                 }
             ]
         )
