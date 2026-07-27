@@ -87,7 +87,7 @@ The database is required for `search` and `history` commands.
 ## Stock Search
 
 ```
-etf find <stock_code> [n] [--en]
+etf find <stock_code> [n] [--en] [--gap PCT]
 ```
 
 Find ETFs that hold a given stock, ranked by weight.
@@ -97,15 +97,19 @@ Find ETFs that hold a given stock, ranked by weight.
 | `stock_code` | Stock code to search for (e.g. `6857`) |
 | `n` | Number of results (default: 10) |
 | `--en` | English names |
+| `--gap PCT` | Adds an `Impact` column: estimated NAV impact (%) = weight × gap |
 
 ```
 $ etf find 6857            # ETFs holding Advantest
 $ etf find 7203 5          # top 5 ETFs holding Toyota
 $ etf find 6857 --en       # English names
+$ etf find 285A --gap +8   # Kioxia gapped +8% — estimated impact per ETF
 ```
 
 !!! tip
     `etf search` also works — it's an alias for `etf find`.
+
+See the [Concentration Screening guide](concentration.md) for the arbitrage use case behind `--gap`.
 
 ## Weight History
 
@@ -168,7 +172,10 @@ Screen all ETFs in the local DB by trading activity, volatility, fund size, or f
 $ etf screen                    # top 20 by range_pct
 $ etf screen --by vol_ratio     # volume surges
 $ etf screen --by aum --top 10  # top 10 by fund size
+$ etf screen --by top1          # most concentrated ETFs (DB only, no extras needed)
 ```
+
+`--by top1`, `--by top3`, and `--by top10` sort by portfolio concentration (top holding, top-3, and top-10 cumulative weight) and, like `aum`/`fee`, use the local DB only — no OHLCV fetch, no `screen` extra required. See the [Concentration Screening guide](concentration.md) for the arbitrage use case.
 
 See the [ETF Screener guide](screen.md) for the full list of stats, install steps, and requirements.
 
@@ -176,7 +183,7 @@ See the [ETF Screener guide](screen.md) for the full list of stats, install step
 
 ```
 $ etf --version
-pyjpx-etf 0.4.0
+pyjpx-etf x.y.z  # your installed version
 
 $ etf --help
 ```

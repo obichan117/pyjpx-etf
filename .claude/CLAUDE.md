@@ -32,11 +32,12 @@ uv run python -m pyjpx_etf._internal.pipeline_cli --db /tmp/pcf.db
 
 ```
 src/pyjpx_etf/
-├── __init__.py        # Public API: ETF, config, ranking, search, history, sync
+├── __init__.py        # Public API: ETF, config, ranking, search, history, concentration, sync
 ├── etf.py             # ETF class (DB-first, live fallback) + _resolve_japanese_names()
 ├── ranking.py         # ranking() — ETF returns ranking via Rakuten data (always live)
-├── search.py          # search() — reverse stock lookup from local DB
+├── search.py          # search() — reverse stock lookup from local DB, gap= for NAV-impact estimate
 ├── history.py         # history() — weight tracking over time from local DB
+├── concentration.py   # concentration() — rank ETFs by top-holding weight (top1/top3/top10), local DB
 ├── sync.py            # sync() — download pcf.db from GitHub Releases
 ├── models.py          # ETFInfo, Holding frozen dataclasses
 ├── config.py          # Provider URLs, timeout, delay, lang, db_path
@@ -153,10 +154,15 @@ etf.sync()                 # download pcf.db from GitHub Releases
 
 # Search: find ETFs holding a stock
 etf.search("6857")         # ETFs holding Advantest
+etf.search("285A", gap=8.0)  # + impact column: weight (fraction) × gap (%)
 
 # History: weight tracking over time
 etf.history("1306", "6857")  # Advantest weight in TOPIX over time
 etf.history("1306")          # top holdings with weight change
+
+# Concentration: rank ETFs by top-holding weight (local DB only)
+etf.concentration()          # top 20 by top1
+etf.concentration(n=10, by="top3")
 
 etf.config.timeout = 60
 etf.config.request_delay = 0.5
@@ -169,16 +175,17 @@ etf.config.db_path = Path("/custom/pcf.db")
 etf <code|alias> [--en] [-a] [--live]  Show ETF portfolio
 etf rank [n] [period] [--en]           Rank ETFs by return
 etf sync [--force]                     Download/update PCF database
-etf find <stock_code> [n] [--en]       Find ETFs holding a stock
+etf find <stock_code> [n] [--en] [--gap PCT]  Find ETFs holding a stock (+ NAV-impact estimate)
 etf history <etf_code> [stock] [--en]  Weight history
 etf screen [--by STAT] [--days N] [--top N] [--en] [--refresh] [--db PATH]
-                                       ETF screener (requires [screen] extras + JQUANTS_API_KEY)
+                                       ETF screener (requires [screen] extras + JQUANTS_API_KEY
+                                       only for OHLCV stats; top1/top3/top10/aum/fee are DB-only)
 ```
 
 `etf screen` stats: `turnover`, `turnover_ratio`, `range_pct` (default), `atr`,
 `range_ratio` (>2 = unusual volatility), `vol_ratio` (>2 = volume surge), `return_pct`
-(all need OHLCV fetch); `aum`, `fee` (local DB only). OHLCV cached 1 day at
-`~/.cache/pyjpx-etf/ohlcv/`.
+(all need OHLCV fetch); `aum`, `fee`, `top1`, `top3`, `top10` (local DB only, no extras).
+OHLCV cached 1 day at `~/.cache/pyjpx-etf/ohlcv/`.
 
 ## Dependencies
 

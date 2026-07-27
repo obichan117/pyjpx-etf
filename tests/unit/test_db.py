@@ -219,6 +219,33 @@ class TestReadQueries:
         df = db.search_by_holding("7203")
         assert len(df) == 1
         assert df.iloc[0]["code"] == "1306"
+        # cash_component=1000 + (1000*2500 + 500*5000) on latest date
+        assert df.iloc[0]["aum"] == 5_001_000.0
+        assert df.iloc[0]["date"] == "2026-03-01"
+
+    def test_search_by_holding_excludes_dropped_stock(self, populated_db):
+        # 8035 was held on 2026-02-28 but is absent from 1306's latest
+        # snapshot (2026-03-01) — search must not resurrect the old weight.
+        db.insert_holdings(
+            populated_db,
+            "1306",
+            "2026-02-28",
+            [
+                Holding(
+                    code="8035",
+                    name="TOKYO ELECTRON",
+                    isin="JP003",
+                    exchange="TSE",
+                    currency="JPY",
+                    shares=100.0,
+                    price=30000.0,
+                    weight=0.3,
+                )
+            ],
+        )
+        populated_db.commit()
+        df = db.search_by_holding("8035")
+        assert df.empty
 
     def test_read_history_with_holding(self, populated_db):
         df = db.read_history("1306", "7203")
@@ -230,6 +257,196 @@ class TestReadQueries:
         df = db.read_history("1306")
         assert len(df) == 2
         assert "weight_change" in df.columns
+
+
+@pytest.fixture()
+def concentration_db(tmp_db):
+    """DB with a concentrated ETF, a diversified ETF, and a derivative row."""
+    conn = tmp_db
+    db.upsert_etf(conn, "9001", name_ja="集中ETF", name_en="Concentrated ETF", fee=0.10)
+    db.upsert_etf(conn, "9002", name_ja="分散ETF", name_en="Diversified ETF", fee=0.20)
+
+    db.insert_pcf_info(
+        conn,
+        "9001",
+        "2026-06-01",
+        name="Concentrated ETF",
+        cash_component=1000.0,
+        shares_outstanding=1000,
+    )
+    db.insert_pcf_info(
+        conn,
+        "9002",
+        "2026-06-01",
+        name="Diversified ETF",
+        cash_component=1000.0,
+        shares_outstanding=1000,
+    )
+
+    concentrated_holdings = [
+        Holding(
+            code="1111",
+            name="BigCo",
+            isin="JP101",
+            exchange="TSE",
+            currency="JPY",
+            shares=100.0,
+            price=1000.0,
+            weight=0.22,
+        ),
+        Holding(
+            code="2222",
+            name="SmallCo",
+            isin="JP102",
+            exchange="TSE",
+            currency="JPY",
+            shares=100.0,
+            price=100.0,
+            weight=0.03,
+        ),
+        Holding(
+            code="",
+            name="FX Forward",
+            isin="",
+            exchange="",
+            currency="USD",
+            shares=0.0,
+            price=0.0,
+            weight=0.75,
+        ),
+    ]
+    db.insert_holdings(conn, "9001", "2026-06-01", concentrated_holdings)
+
+    diversified_holdings = [
+        Holding(
+            code=f"{3000 + i}",
+            name=f"Stock{i}",
+            isin=f"JP20{i}",
+            exchange="TSE",
+            currency="JPY",
+            shares=10.0,
+            price=100.0,
+            weight=0.02,
+        )
+        for i in range(20)
+    ]
+    db.insert_holdings(conn, "9002", "2026-06-01", diversified_holdings)
+
+    # Feeder fund-of-funds ETF: holds one foreign ETF + cash. Both holding
+    # codes are 4 chars but must NOT count as JP-equity concentration.
+    db.upsert_etf(conn, "9003", name_ja="フィーダーETF", name_en="Feeder ETF", fee=0.1)
+    db.insert_pcf_info(
+        conn,
+        "9003",
+        "2026-06-01",
+        name="Feeder ETF",
+        cash_component=1000.0,
+        shares_outstanding=1000,
+    )
+    feeder_holdings = [
+        Holding(
+            code="IEMG",
+            name="ISHARES CORE MSCI EM",
+            isin="US001",
+            exchange="NYSE",
+            currency="USD",
+            shares=100.0,
+            price=50.0,
+            weight=0.95,
+        ),
+        Holding(
+            code="CASH",
+            name="CASH",
+            isin="",
+            exchange="",
+            currency="JPY",
+            shares=0.0,
+            price=0.0,
+            weight=0.05,
+        ),
+    ]
+    db.insert_holdings(conn, "9003", "2026-06-01", feeder_holdings)
+    conn.commit()
+    return conn
+
+
+class TestConcentrationStats:
+    def test_columns(self, concentration_db):
+        config.lang = "en"
+        df = db.concentration_stats()
+        assert list(df.columns) == [
+            "code",
+            "name",
+            "top_code",
+            "top_name",
+            "top1",
+            "top3",
+            "top10",
+            "n_holdings",
+            "aum",
+        ]
+
+    def test_ordering_by_top1(self, concentration_db):
+        config.lang = "en"
+        df = db.concentration_stats()
+        assert df.iloc[0]["code"] == "9001"  # concentrated ETF ranks first
+        assert df.iloc[0]["name"] == "Concentrated ETF"
+        assert df.iloc[0]["top_code"] == "1111"
+
+    def test_weights_are_fractions(self, concentration_db):
+        df = db.concentration_stats()
+        row = df[df["code"] == "9001"].iloc[0]
+        assert abs(row["top1"] - 0.22) < 1e-9
+        assert abs(row["top3"] - 0.25) < 1e-9  # only 2 equity holdings
+
+    def test_derivative_row_present_but_excluded(self, concentration_db):
+        # Derivative (FX forward) row is present in raw pcf_holdings...
+        row = concentration_db.execute(
+            "SELECT * FROM pcf_holdings WHERE code = '9001' AND holding_code = ''"
+        ).fetchone()
+        assert row is not None
+        assert row["weight"] == 0.75
+
+        # ...but excluded from concentration stats (only 4-char equity codes)
+        df = db.concentration_stats()
+        top_row = df[df["code"] == "9001"].iloc[0]
+        assert abs(top_row["top1"] - 0.22) < 1e-9
+        assert top_row["n_holdings"] == 2
+
+    def test_feeder_and_cash_codes_excluded(self, concentration_db):
+        # 9003 holds only IEMG (foreign ticker) + CASH — 4-char codes that
+        # don't match the JP-equity pattern, so the ETF has no qualifying
+        # holdings and must not appear in the ranking at all.
+        df = db.concentration_stats()
+        assert "9003" not in df["code"].tolist()
+        assert df.iloc[0]["code"] == "9001"  # still the real concentrated ETF
+
+    def test_diversified_etf_has_low_concentration(self, concentration_db):
+        df = db.concentration_stats()
+        row = df[df["code"] == "9002"].iloc[0]
+        assert abs(row["top1"] - 0.02) < 1e-9
+        assert row["n_holdings"] == 20
+
+    def test_sort_by_top3(self, concentration_db):
+        df = db.concentration_stats(by="top3")
+        vals = df["top3"].tolist()
+        assert vals == sorted(vals, reverse=True)
+
+    def test_n_limits_results(self, concentration_db):
+        df = db.concentration_stats(n=1)
+        assert len(df) == 1
+
+    def test_includes_aum(self, concentration_db):
+        df = db.concentration_stats()
+        row = df[df["code"] == "9001"].iloc[0]
+        # cash_component=1000 + (100*1000 + 100*100 + 0*0)
+        assert row["aum"] == 111_000.0
+
+    def test_empty_without_db(self, tmp_path):
+        config.db_path = tmp_path / "nonexistent.db"
+        df = db.concentration_stats()
+        assert df.empty
+        config.db_path = None
 
 
 class TestDbMissing:

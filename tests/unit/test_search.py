@@ -47,3 +47,65 @@ class TestSearch:
             n=10,
             date="2026-03-01",
         )
+
+    @patch.object(_search_mod, "search_by_holding")
+    @patch("pyjpx_etf._internal.db_core.db_path")
+    def test_gap_adds_impact_column(self, mock_path, mock_search, tmp_path):
+        fake_db = tmp_path / "test.db"
+        fake_db.write_bytes(b"fake")
+        mock_path.return_value = fake_db
+        mock_search.return_value = pd.DataFrame(
+            [
+                {
+                    "code": "1306",
+                    "name": "TOPIX",
+                    "weight": 0.2,
+                    "shares": 1000,
+                    "aum": 1e12,
+                }
+            ]
+        )
+        df = search("6857", gap=8.0)
+        assert "impact" in df.columns
+        assert abs(df.iloc[0]["impact"] - 0.2 * 8.0) < 1e-9
+
+    @patch.object(_search_mod, "search_by_holding")
+    @patch("pyjpx_etf._internal.db_core.db_path")
+    def test_no_gap_no_impact_column(self, mock_path, mock_search, tmp_path):
+        fake_db = tmp_path / "test.db"
+        fake_db.write_bytes(b"fake")
+        mock_path.return_value = fake_db
+        mock_search.return_value = pd.DataFrame(
+            [
+                {
+                    "code": "1306",
+                    "name": "TOPIX",
+                    "weight": 0.2,
+                    "shares": 1000,
+                    "aum": 1e12,
+                }
+            ]
+        )
+        df = search("6857")
+        assert "impact" not in df.columns
+
+    @patch.object(_search_mod, "search_by_holding")
+    @patch("pyjpx_etf._internal.db_core.db_path")
+    def test_aum_column_present(self, mock_path, mock_search, tmp_path):
+        fake_db = tmp_path / "test.db"
+        fake_db.write_bytes(b"fake")
+        mock_path.return_value = fake_db
+        mock_search.return_value = pd.DataFrame(
+            [
+                {
+                    "code": "1306",
+                    "name": "TOPIX",
+                    "weight": 0.2,
+                    "shares": 1000,
+                    "aum": 5e10,
+                }
+            ]
+        )
+        df = search("6857")
+        assert "aum" in df.columns
+        assert df.iloc[0]["aum"] == 5e10

@@ -56,8 +56,11 @@ $ etf screen --by range_ratio --en # unusual volatility, English names
 | `return_pct` | Daily return % |
 | `aum` | Total net asset value (DB only) |
 | `fee` | Annual expense ratio % (DB only) |
+| `top1` | Top holding weight (DB only) |
+| `top3` | Top-3 cumulative holding weight (DB only) |
+| `top10` | Top-10 cumulative holding weight (DB only) |
 
-`aum` and `fee` come straight from the local database — no OHLCV fetch is needed for those two stats, so they run instantly even without a J-Quants key.
+`aum`, `fee`, `top1`, `top3`, and `top10` come straight from the local database — no OHLCV fetch is needed for those stats, so they run instantly even without a J-Quants key. See the [Concentration Screening guide](concentration.md) for what `top1`/`top3`/`top10` mean and the arbitrage use case behind them.
 
 All other stats require OHLCV data and a 20-day rolling window, so `--days` should generally stay at 30 or higher to leave room for the rolling average.
 

@@ -1,6 +1,8 @@
 import importlib
 from unittest.mock import patch
 
+import pandas as pd
+
 from pyjpx_etf import config
 from pyjpx_etf._internal.cli_fmt import format_yen
 from pyjpx_etf._internal.cli_show import _resolve_code
@@ -9,6 +11,8 @@ from pyjpx_etf.cli import main
 # pyjpx_etf.ranking is shadowed by the function in __init__.py.
 # importlib gives us the actual module for patching.
 _ranking_mod = importlib.import_module("pyjpx_etf.ranking")
+# pyjpx_etf.search (module) is shadowed by the function in __init__.py.
+_search_mod = importlib.import_module("pyjpx_etf.search")
 
 MOCK_CSV = """\
 ETF Code,ETF Name,Fund Cash Component,Shares Outstanding,Fund Date
@@ -385,3 +389,55 @@ class TestCLIHelp:
         assert "history" in out
         assert "screen" in out
         assert "--live" in out
+
+    def test_help_includes_gap_flag(self, capsys):
+        with patch("sys.argv", ["etf", "--help"]):
+            main()
+        out = capsys.readouterr().out
+        assert "--gap" in out
+
+
+class TestCLIFindGap:
+    def test_find_gap_shows_impact(self, capsys):
+        mock_df = pd.DataFrame(
+            [
+                {
+                    "code": "1306",
+                    "name": "TOPIX ETF",
+                    "weight": 0.213,
+                    "shares": 1000,
+                    "aum": 1e11,
+                    "impact": 0.213 * 8.0,
+                    "date": "2026-03-01",
+                }
+            ]
+        )
+        with patch.object(_search_mod, "search", return_value=mock_df):
+            with patch("sys.argv", ["etf", "find", "285A", "--gap", "+8"]):
+                main()
+        out = capsys.readouterr().out
+        assert "Impact" in out
+        assert "Date" in out
+        line = next(line for line in out.splitlines() if "1306" in line)
+        assert "+" in line
+        assert "1.70" in line
+        assert "2026-03-01" in line
+
+    def test_find_without_gap_has_no_impact(self, capsys):
+        mock_df = pd.DataFrame(
+            [
+                {
+                    "code": "1306",
+                    "name": "TOPIX ETF",
+                    "weight": 0.213,
+                    "shares": 1000,
+                    "aum": 1e11,
+                    "date": "2026-03-01",
+                }
+            ]
+        )
+        with patch.object(_search_mod, "search", return_value=mock_df):
+            with patch("sys.argv", ["etf", "find", "285A"]):
+                main()
+        out = capsys.readouterr().out
+        assert "Impact" not in out

@@ -25,9 +25,15 @@ import sys
 from pathlib import Path
 
 from ..db_core import db_path as _get_default_db_path
-from .db import _get_etf_aum, _get_etf_codes, _get_etf_fees, _get_etf_names
+from .db import (
+    _get_concentration,
+    _get_etf_aum,
+    _get_etf_codes,
+    _get_etf_fees,
+    _get_etf_names,
+)
 from .display import _display, _print_help
-from .signals import DEFAULT_STAT, OHLCV_STATS, STATS, _screen
+from .signals import CONCENTRATION_STATS, DEFAULT_STAT, OHLCV_STATS, STATS, _screen
 
 DEFAULT_TOP = 20
 DEFAULT_DAYS = 30
@@ -105,6 +111,10 @@ def main_screen(argv: list[str]) -> None:
     aum_data = _get_etf_aum(db_path)
     print(f"  Found {len(codes)} ETFs")
 
+    concentration_data: dict = {}
+    if sort_by in CONCENTRATION_STATS:
+        concentration_data = _get_concentration(db_path)
+
     ohlcv: dict = {}
 
     if needs_ohlcv:
@@ -124,5 +134,13 @@ def main_screen(argv: list[str]) -> None:
         print(f"  Total: {len(ohlcv)} ETFs with data")
 
     print(f"\nScreening top {top} by {sort_by}...")
-    results = _screen(ohlcv, names, fees, aum_data, sort_by=sort_by, top=top)
+    results = _screen(
+        ohlcv,
+        names,
+        fees,
+        aum_data,
+        sort_by=sort_by,
+        top=top,
+        concentration=concentration_data,
+    )
     _display(results, sort_by)

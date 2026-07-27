@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import sys
 
+import pandas as pd
+
 from ..config import config
 from ..exceptions import PyJPXETFError
-from .cli_fmt import display_width, pad
+from .cli_fmt import display_width, format_yen, pad
 from .db_core import get_connection
 
 
@@ -41,14 +43,24 @@ def main_sync(argv: list[str]) -> None:
 
 
 def main_search(argv: list[str]) -> None:
-    """Handle ``etf search <stock_code> [n] [--en]``."""
+    """Handle ``etf find <stock_code> [n] [--en] [--gap PCT]``."""
     stock_code = None
     n = 10
     en = False
+    gap = None
 
-    for arg in argv:
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
         if arg == "--en":
             en = True
+        elif arg == "--gap" and i + 1 < len(argv):
+            i += 1
+            try:
+                gap = float(argv[i])
+            except ValueError:
+                print(f"Error: invalid --gap value {argv[i]!r}", file=sys.stderr)
+                sys.exit(1)
         elif stock_code is None:
             stock_code = arg
         else:
@@ -57,9 +69,10 @@ def main_search(argv: list[str]) -> None:
             except ValueError:
                 print(f"Error: invalid argument {arg!r}", file=sys.stderr)
                 sys.exit(1)
+        i += 1
 
     if stock_code is None:
-        print("Usage: etf search <stock_code> [n] [--en]", file=sys.stderr)
+        print("Usage: etf find <stock_code> [n] [--en] [--gap PCT]", file=sys.stderr)
         sys.exit(1)
 
     if en:
@@ -68,7 +81,7 @@ def main_search(argv: list[str]) -> None:
     from ..search import search
 
     try:
-        df = search(stock_code, n=n)
+        df = search(stock_code, n=n, gap=gap)
     except PyJPXETFError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
@@ -88,13 +101,32 @@ def main_search(argv: list[str]) -> None:
         header += f" {stock_name}"
     print(f"  {header}")
     print()
-    print(f" {'Code':<5}  {pad('Name', name_width)}  {'Weight':>8}  {'Shares':>12}")
-    print(f"{'─' * 5}  {'─' * name_width}  {'─' * 8}  {'─' * 12}")
+    header_line = (
+        f" {'Code':<5}  {pad('Name', name_width)}"
+        f"  {'Weight':>8}  {'Shares':>12}  {'AUM':>10}"
+    )
+    sep_line = f"{'─' * 5}  {'─' * name_width}  {'─' * 8}  {'─' * 12}  {'─' * 10}"
+    if gap is not None:
+        header_line += f"  {'Impact':>8}"
+        sep_line += f"  {'─' * 8}"
+    header_line += f"  {'Date':<10}"
+    sep_line += f"  {'─' * 10}"
+    print(header_line)
+    print(sep_line)
     for _, row in df.iterrows():
-        print(
+        aum = row.get("aum")
+        aum_str = format_yen(aum) if pd.notna(aum) else "-"
+        line = (
             f" {row['code']:<5}  {pad(str(row['name']), name_width)}"
             f"  {row['weight'] * 100:>7.2f}%  {row['shares']:>12,.0f}"
+            f"  {aum_str:>10}"
         )
+        if gap is not None:
+            impact = row["impact"]  # already in percent: weight (fraction) × gap (%)
+            sign = "+" if impact >= 0 else ""
+            line += f"  {sign}{impact:>6.2f}%"
+        line += f"  {str(row.get('date') or '-'):<10}"
+        print(line)
     print()
 
 
