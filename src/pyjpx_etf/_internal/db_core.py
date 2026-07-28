@@ -62,14 +62,32 @@ def db_path() -> Path:
     return _DEFAULT_DB_PATH
 
 
+def full_db_path() -> Path:
+    """Return the path of the full-history database (``pcf-full.db``).
+
+    Kept as a separate file next to the default DB so the daily
+    latest-only sync never overwrites downloaded history.
+    """
+    p = db_path()
+    return p.with_name(f"{p.stem}-full{p.suffix}")
+
+
 def db_exists() -> bool:
     """Return True if the database file exists."""
     return db_path().is_file()
 
 
-def get_connection(*, readonly: bool = True) -> sqlite3.Connection:
-    """Return a SQLite connection. Read-only by default."""
-    path = db_path()
+def full_db_exists() -> bool:
+    """Return True if the full-history database file exists."""
+    return full_db_path().is_file()
+
+
+def get_connection(*, readonly: bool = True, full: bool = False) -> sqlite3.Connection:
+    """Return a SQLite connection. Read-only by default.
+
+    With ``full=True``, connect to the full-history DB instead.
+    """
+    path = full_db_path() if full else db_path()
     if readonly:
         uri = f"file:{path}?mode=ro"
         conn = sqlite3.connect(uri, uri=True)

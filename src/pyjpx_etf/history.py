@@ -31,11 +31,28 @@ def history(etf_code: str, holding_code: str | None = None) -> pd.DataFrame:
     ------
     DatabaseError
         If the local database does not exist. Run ``etf sync`` first.
+
+    Notes
+    -----
+    Full history requires the full-history database (``etf sync --full``).
+    Without it, this falls back to the default database, which may contain
+    only each ETF's latest snapshot.
     """
-    from ._internal.db import db_exists
+    import sys
+
+    from ._internal.db import db_exists, full_db_exists
     from .etf import _ensure_db
 
     _ensure_db()
-    if not db_exists():
-        raise DatabaseError("Local database not found. Check your network connection.")
+    if not full_db_exists():
+        if not db_exists():
+            raise DatabaseError(
+                "Local database not found. Check your network connection."
+            )
+        print(
+            "Hint: full weight history requires `etf sync --full` "
+            "(falling back to the default DB, which may hold only the "
+            "latest snapshot).",
+            file=sys.stderr,
+        )
     return read_history(etf_code, holding_code)

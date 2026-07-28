@@ -30,6 +30,12 @@ def main() -> None:
         default=None,
         help="Save unparseable CSV files to this directory for debugging",
     )
+    parser.add_argument(
+        "--latest-out",
+        type=Path,
+        default=None,
+        help="Also export a latest-snapshot-only DB to this path",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -42,6 +48,14 @@ def main() -> None:
     config.request_delay = args.delay
 
     run_pipeline(args.db, debug_dir=args.debug_dir)
+
+    if args.latest_out is not None:
+        from .db import export_latest
+
+        export_latest(args.db, args.latest_out)
+        logging.getLogger(__name__).info(
+            "Exported latest-only DB to %s", args.latest_out
+        )
 
 
 if __name__ == "__main__":

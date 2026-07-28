@@ -14,7 +14,8 @@ pyjpx-etf {__version__}
 Usage:
   etf <code|alias> [--en] [-a] [--live]  Show ETF portfolio composition
   etf rank [n] [period] [--en]           Rank ETFs by return
-  etf sync [--force]                     Download/update PCF database
+  etf sync [--force] [--full]            Download/update PCF database
+                                         (--full: full history for `etf history`)
   etf find <stock_code> [n] [--en] [--gap PCT]
                                          Find ETFs holding a stock
   etf history <etf_code> [stock] [--en]  Weight history

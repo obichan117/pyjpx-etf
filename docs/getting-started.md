@@ -28,10 +28,13 @@ Or from the CLI:
 $ etf sync
 ```
 
-This downloads a pre-built SQLite database (~5 MB) from GitHub Releases to `~/.cache/pyjpx-etf/pcf.db`. The database is updated daily by a GitHub Actions cron job.
+This downloads a pre-built SQLite database (a few MB — each ETF's latest snapshot) from GitHub Releases to `~/.cache/pyjpx-etf/pcf.db`. The database is updated daily by a GitHub Actions cron job.
 
 !!! tip "Without the database"
     You can skip `sync` — ETF lookups will fall back to live HTTP. But `search()` and `history()` require the local DB.
+
+!!! note "Full history"
+    `history()` tracks weights over time, which needs the much larger full-history database: `etf sync --full`. See the [Local Database guide](guide/database.md).
 
 ## Basic Usage
 

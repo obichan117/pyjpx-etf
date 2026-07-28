@@ -21,9 +21,14 @@ _JPX_FEE_URL = "https://www.jpx.co.jp/equities/products/etfs/issues/01.html"
 
 _RAKUTEN_URL = "https://www.rakuten-sec.co.jp/web/market/search/etf_search/ETFD.csv"
 
-_DB_RELEASE_URL = (
-    "https://github.com/obichan117/pyjpx-etf/releases/download/db-latest/pcf.db"
-)
+_DB_RELEASE_BASE = "https://github.com/obichan117/pyjpx-etf/releases/download/db-latest"
+# Latest-snapshot-only DB (a few MB) — the default `sync()` target.
+_DB_LATEST_URL = f"{_DB_RELEASE_BASE}/pcf-latest.db.gz"
+# Full append-only history DB (hundreds of MB) — `sync(full=True)` only.
+_DB_FULL_URL = f"{_DB_RELEASE_BASE}/pcf-full.db.gz"
+# Uncompressed full DB kept for clients <= 0.7.0 and as a fallback until the
+# first pipeline run that publishes the .gz assets.
+_DB_LEGACY_URL = f"{_DB_RELEASE_BASE}/pcf.db"
 
 _UA_HEADERS = {
     "User-Agent": (

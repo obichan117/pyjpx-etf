@@ -29,13 +29,14 @@ def _lookup_name(table: str, code: str, en: bool) -> str:
 
 
 def main_sync(argv: list[str]) -> None:
-    """Handle ``etf sync [--force]``."""
+    """Handle ``etf sync [--force] [--full]``."""
     force = "--force" in argv
+    full = "--full" in argv
 
     from ..sync import sync
 
     try:
-        path = sync(force=force)
+        path = sync(force=force, full=full)
         print(f"Database ready: {path}")
     except PyJPXETFError as exc:
         print(f"Error: {exc}", file=sys.stderr)

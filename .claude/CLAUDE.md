@@ -38,7 +38,7 @@ src/pyjpx_etf/
 ├── search.py          # search() — reverse stock lookup from local DB, gap= for NAV-impact estimate
 ├── history.py         # history() — weight tracking over time from local DB
 ├── concentration.py   # concentration() — rank ETFs by top-holding weight (top1/top3/top10), local DB
-├── sync.py            # sync() — download pcf.db from GitHub Releases
+├── sync.py            # sync() — download latest-snapshot DB (full=True: full history)
 ├── models.py          # ETFInfo, Holding frozen dataclasses
 ├── config.py          # Provider URLs, timeout, delay, lang, db_path
 ├── exceptions.py      # PyJPXETFError → ETFNotFoundError, FetchError, ParseError, DatabaseError
@@ -101,7 +101,10 @@ src/pyjpx_etf/
 - Path: `~/.cache/pyjpx-etf/pcf.db` (override with `config.db_path`)
 - Tables: `meta`, `etfs`, `pcf_info`, `pcf_holdings`, `securities`
 - Built by GitHub Actions daily cron (07:55 JST, Mon-Fri)
-- Downloaded by users via `etf sync`
+- Two release assets: `pcf-latest.db.gz` (latest snapshot per ETF, a few MB — default
+  `etf sync`) and `pcf-full.db.gz` (full append-only history, 100s of MB — `etf sync --full`,
+  saved to `pcf-full.db` so daily syncs never overwrite it). Uncompressed `pcf.db` (full)
+  kept for clients <= 0.7.0. `history()` prefers `pcf-full.db` when present.
 
 ## Data Sources
 
@@ -150,7 +153,8 @@ etf.ranking()              # top 10 by 1m return
 etf.ranking("1y", n=20)    # top 20 by 1y return
 
 # Sync local database
-etf.sync()                 # download pcf.db from GitHub Releases
+etf.sync()                 # download latest-snapshot DB (a few MB)
+etf.sync(full=True)        # download full-history DB for history()
 
 # Search: find ETFs holding a stock
 etf.search("6857")         # ETFs holding Advantest
@@ -174,7 +178,7 @@ etf.config.db_path = Path("/custom/pcf.db")
 ```
 etf <code|alias> [--en] [-a] [--live]  Show ETF portfolio
 etf rank [n] [period] [--en]           Rank ETFs by return
-etf sync [--force]                     Download/update PCF database
+etf sync [--force] [--full]            Download/update PCF database (--full: history)
 etf find <stock_code> [n] [--en] [--gap PCT]  Find ETFs holding a stock (+ NAV-impact estimate)
 etf history <etf_code> [stock] [--en]  Weight history
 etf screen [--by STAT] [--days N] [--top N] [--en] [--refresh] [--db PATH]

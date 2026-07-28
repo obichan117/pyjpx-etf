@@ -459,3 +459,42 @@ class TestDbMissing:
         config.db_path = tmp_path / "nonexistent.db"
         assert not db.db_exists()
         config.db_path = None
+
+
+class TestExportLatest:
+    def test_keeps_only_latest_snapshot(self, populated_db, tmp_path):
+        import sqlite3
+
+        dest = tmp_path / "latest.db"
+        db.export_latest(db.db_path(), dest)
+
+        out = sqlite3.connect(str(dest))
+        out.row_factory = sqlite3.Row
+        try:
+            dates = [
+                r["date"] for r in out.execute("SELECT DISTINCT date FROM pcf_holdings")
+            ]
+            assert dates == ["2026-03-01"]
+            assert out.execute("SELECT COUNT(*) FROM pcf_holdings").fetchone()[0] == 2
+            assert out.execute("SELECT COUNT(*) FROM etfs").fetchone()[0] == 2
+            assert out.execute("SELECT COUNT(*) FROM securities").fetchone()[0] == 2
+            variant = out.execute(
+                "SELECT value FROM meta WHERE key = 'variant'"
+            ).fetchone()
+            assert variant["value"] == "latest"
+        finally:
+            out.close()
+
+
+class TestFullDbPreference:
+    def test_read_history_prefers_full_db(self, populated_db):
+        import shutil
+
+        # Snapshot today's two-date DB as the full-history DB, then strip
+        # the older date from the main DB (simulating a latest-only sync).
+        shutil.copy(db.db_path(), db.full_db_path())
+        populated_db.execute("DELETE FROM pcf_holdings WHERE date = '2026-02-28'")
+        populated_db.commit()
+
+        df = db.read_history("1306", "7203")
+        assert len(df) == 2  # both dates, served from the full DB

@@ -1,5 +1,6 @@
 """Tests for sync.py — download DB from GitHub Releases."""
 
+import gzip
 import importlib
 import os
 import time
@@ -9,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from pyjpx_etf.config import config
+from pyjpx_etf.config import _DB_FULL_URL, _DB_LATEST_URL, _DB_LEGACY_URL, config
 from pyjpx_etf.exceptions import DatabaseError
 from pyjpx_etf.sync import sync
 
@@ -25,21 +26,64 @@ def _db_path(tmp_path):
     config.db_path = original
 
 
+def _gz_response(payload: bytes, headers: dict | None = None) -> MagicMock:
+    """Mock GET response serving *payload* gzipped."""
+    gz = gzip.compress(payload)
+    resp = MagicMock()
+    resp.headers = {"content-length": str(len(gz)), **(headers or {})}
+    resp.iter_content.return_value = [gz]
+    resp.raise_for_status.return_value = None
+    return resp
+
+
+def _mock_exceptions(mock_requests) -> None:
+    """except-clauses in sync.py need the real exception classes."""
+    mock_requests.RequestException = requests.RequestException
+    mock_requests.HTTPError = requests.HTTPError
+
+
 class TestSync:
     @patch.object(_sync_mod, "requests")
-    def test_downloads_db(self, mock_requests):
-        mock_resp = MagicMock()
-        mock_resp.headers = {"content-length": "100"}
-        mock_resp.iter_content.return_value = [b"x" * 100]
-        mock_resp.raise_for_status.return_value = None
-        mock_requests.get.return_value = mock_resp
+    def test_downloads_and_decompresses(self, mock_requests):
+        _mock_exceptions(mock_requests)
+        mock_requests.get.return_value = _gz_response(b"x" * 100)
 
         path = sync(force=True)
-        assert path.is_file()
+        assert path == config.db_path
         assert path.read_bytes() == b"x" * 100
+        assert mock_requests.get.call_args[0][0] == _DB_LATEST_URL
+
+    @patch.object(_sync_mod, "requests")
+    def test_full_downloads_to_separate_file(self, mock_requests):
+        _mock_exceptions(mock_requests)
+        mock_requests.get.return_value = _gz_response(b"full-db")
+
+        path = sync(force=True, full=True)
+        assert path.name == "pcf-full.db"
+        assert path.read_bytes() == b"full-db"
+        assert mock_requests.get.call_args[0][0] == _DB_FULL_URL
+
+    @patch.object(_sync_mod, "requests")
+    def test_falls_back_to_legacy_asset_on_404(self, mock_requests):
+        _mock_exceptions(mock_requests)
+        resp_404 = MagicMock()
+        resp_404.raise_for_status.side_effect = requests.HTTPError(
+            response=MagicMock(status_code=404)
+        )
+        resp_legacy = MagicMock()
+        resp_legacy.headers = {"content-length": "6"}
+        resp_legacy.iter_content.return_value = [b"legacy"]
+        resp_legacy.raise_for_status.return_value = None
+        mock_requests.get.side_effect = [resp_404, resp_legacy]
+
+        path = sync(force=True)
+        assert path.read_bytes() == b"legacy"  # served uncompressed
+        urls = [c[0][0] for c in mock_requests.get.call_args_list]
+        assert urls == [_DB_LATEST_URL, _DB_LEGACY_URL]
 
     @patch.object(_sync_mod, "requests")
     def test_skips_when_remote_not_newer(self, mock_requests):
+        _mock_exceptions(mock_requests)
         db_file = config.db_path
         db_file.parent.mkdir(parents=True, exist_ok=True)
         db_file.write_bytes(b"existing")
@@ -61,6 +105,7 @@ class TestSync:
 
     @patch.object(_sync_mod, "requests")
     def test_downloads_when_remote_newer(self, mock_requests):
+        _mock_exceptions(mock_requests)
         db_file = config.db_path
         db_file.parent.mkdir(parents=True, exist_ok=True)
         db_file.write_bytes(b"existing")
@@ -73,12 +118,7 @@ class TestSync:
             "last-modified": time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
         }
         mock_requests.head.return_value = mock_head_resp
-
-        mock_get_resp = MagicMock()
-        mock_get_resp.headers = {"content-length": "3"}
-        mock_get_resp.iter_content.return_value = [b"new"]
-        mock_get_resp.raise_for_status.return_value = None
-        mock_requests.get.return_value = mock_get_resp
+        mock_requests.get.return_value = _gz_response(b"new")
 
         path = sync()
         assert path.read_bytes() == b"new"
@@ -86,11 +126,11 @@ class TestSync:
 
     @patch.object(_sync_mod, "requests")
     def test_offline_keeps_local(self, mock_requests):
+        _mock_exceptions(mock_requests)
         db_file = config.db_path
         db_file.parent.mkdir(parents=True, exist_ok=True)
         db_file.write_bytes(b"existing")
 
-        mock_requests.RequestException = requests.RequestException
         mock_requests.head.side_effect = requests.RequestException("offline")
 
         path = sync()
@@ -100,12 +140,11 @@ class TestSync:
 
     @patch.object(_sync_mod, "requests")
     def test_download_sets_mtime_from_remote(self, mock_requests):
-        mock_resp = MagicMock()
+        _mock_exceptions(mock_requests)
         last_modified = "Wed, 01 Jul 2026 23:00:00 GMT"
-        mock_resp.headers = {"content-length": "3", "last-modified": last_modified}
-        mock_resp.iter_content.return_value = [b"new"]
-        mock_resp.raise_for_status.return_value = None
-        mock_requests.get.return_value = mock_resp
+        mock_requests.get.return_value = _gz_response(
+            b"new", headers={"last-modified": last_modified}
+        )
 
         path = sync(force=True)
         assert path.stat().st_mtime == pytest.approx(
@@ -114,24 +153,19 @@ class TestSync:
 
     @patch.object(_sync_mod, "requests")
     def test_force_redownloads(self, mock_requests):
+        _mock_exceptions(mock_requests)
         db_file = config.db_path
         db_file.parent.mkdir(parents=True, exist_ok=True)
         db_file.write_bytes(b"existing")
 
-        mock_resp = MagicMock()
-        mock_resp.headers = {"content-length": "0"}
-        mock_resp.iter_content.return_value = [b"new"]
-        mock_resp.raise_for_status.return_value = None
-        mock_requests.get.return_value = mock_resp
+        mock_requests.get.return_value = _gz_response(b"new")
 
         path = sync(force=True)
         assert path.read_bytes() == b"new"
 
     @patch.object(_sync_mod, "requests")
     def test_raises_on_failure(self, mock_requests):
-        mock_requests.get.side_effect = requests.RequestException(
-            "network error",
-        )
-        mock_requests.RequestException = requests.RequestException
+        _mock_exceptions(mock_requests)
+        mock_requests.get.side_effect = requests.RequestException("network error")
         with pytest.raises(DatabaseError, match="Failed to download"):
             sync(force=True)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from pathlib import Path
 
 from ..models import Holding
 from .db_core import _SCHEMA_SQL
@@ -103,3 +104,40 @@ def update_meta(conn: sqlite3.Connection, key: str, value: str) -> None:
         "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)",
         (key, value),
     )
+
+
+def export_latest(src_path: Path, dest_path: Path) -> None:
+    """Write a latest-snapshot-only copy of the database to *dest_path*.
+
+    Copies ``meta``, ``etfs`` and ``securities`` verbatim, but keeps only
+    each ETF's most recent ``pcf_info`` / ``pcf_holdings`` rows. This is
+    the small asset that daily ``sync()`` downloads.
+    """
+    dest_path.unlink(missing_ok=True)
+    conn = sqlite3.connect(str(dest_path))
+    try:
+        conn.executescript(_SCHEMA_SQL)
+        conn.execute("ATTACH DATABASE ? AS src", (str(src_path),))
+        conn.execute("INSERT INTO meta SELECT * FROM src.meta")
+        conn.execute("INSERT INTO etfs SELECT * FROM src.etfs")
+        conn.execute("INSERT INTO securities SELECT * FROM src.securities")
+        conn.execute(
+            """
+            INSERT INTO pcf_info
+            SELECT pi.* FROM src.pcf_info pi
+            JOIN (SELECT code, MAX(date) AS d FROM src.pcf_info GROUP BY code) m
+              ON pi.code = m.code AND pi.date = m.d
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO pcf_holdings
+            SELECT h.* FROM src.pcf_holdings h
+            JOIN (SELECT code, MAX(date) AS d FROM src.pcf_holdings GROUP BY code) m
+              ON h.code = m.code AND h.date = m.d
+            """
+        )
+        update_meta(conn, "variant", "latest")
+        conn.commit()
+    finally:
+        conn.close()

@@ -1,6 +1,6 @@
 """Python library for fetching JPX ETF portfolio composition data."""
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 from .concentration import concentration
 from .config import config

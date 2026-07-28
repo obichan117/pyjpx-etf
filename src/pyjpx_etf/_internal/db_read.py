@@ -274,11 +274,17 @@ def read_history(etf_code: str, holding_code: str | None = None) -> pd.DataFrame
 
     If holding_code given: time series of that stock's weight in the ETF.
     If None: latest top holdings with weight change from earliest date.
+
+    Reads the full-history DB (``etf sync --full``) when present; otherwise
+    falls back to the default DB, which may hold only the latest snapshot.
     """
-    if not db_exists():
+    from .db_core import full_db_exists
+
+    use_full = full_db_exists()
+    if not use_full and not db_exists():
         return pd.DataFrame()
     try:
-        conn = get_connection()
+        conn = get_connection(full=use_full)
     except Exception:
         return pd.DataFrame()
     try:

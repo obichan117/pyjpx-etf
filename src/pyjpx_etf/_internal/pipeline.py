@@ -183,6 +183,7 @@ def run_pipeline(
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         db.update_meta(conn, "version", "1")
         db.update_meta(conn, "updated_at", now)
+        db.update_meta(conn, "variant", "full")
         conn.commit()
 
         logger.info("Pipeline complete. DB at %s", db_path)
